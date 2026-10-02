@@ -22,7 +22,6 @@
 #include <Preferences.h>
 
 #include "ProtocoloBrazo.h"
-#include "KalmanFilter.h"
 
 // ==========================================
 // CONFIGURACIÓN DE HARDWARE Y PINES
@@ -45,6 +44,17 @@ const int PIN_I2C_SCL = 22;
 // Frecuencia del lazo de control (50 Hz = 20 ms)
 const TickType_t PERIODO_CONTROL_MS = 20;
 
+// Fusión IMU: filtro complementario (peso del giróscopo, típico 0.96..0.98)
+const float ALPHA_COMPLEMENTARIO = 0.98f;
+// Ajuste fino de montaje del MPU en el guante (°): ángulo leído con la mano en pose neutra
+const float TRIM_PITCH_DEG = 0.0f;
+const float TRIM_ROLL_DEG  = 0.0f;
+// Rango útil de la mano (°) y rango mecánico de los servos de muñeca (°)
+const float PITCH_MANO_ARRIBA = 45.0f;   // -> SERVO_V_MIN
+const float PITCH_MANO_ABAJO  = -25.0f;  // -> SERVO_V_MAX
+const float SERVO_V_MIN = 25.0f, SERVO_V_NEUTRO = 57.0f, SERVO_V_MAX = 90.0f;
+const float ROLL_MANO_MAX = 90.0f;       // ±90° de mano -> 0..180° de servo
+
 // MAC Address de la placa RECEPTORA
 // NOTA: Reemplazar con la MAC física del receptor obtenida por WiFi.macAddress()
 uint8_t macReceptor[] = {0x1C, 0xC3, 0xAB, 0xD2, 0x14, 0x9C};
@@ -53,8 +63,6 @@ uint8_t macReceptor[] = {0x1C, 0xC3, 0xAB, 0xD2, 0x14, 0x9C};
 // OBJETOS Y VARIABLES GLOBALES
 // ==========================================
 Adafruit_MPU6050 mpu;
-KalmanFilter kalmanPitch;
-KalmanFilter kalmanRoll;
 Preferences memoriaNVS;
 
 // Mensaje de transmisión y registro de peer
@@ -65,7 +73,12 @@ esp_now_peer_info_t infoReceptor;
 uint16_t calMinADC[TOTAL_DEDOS] = {1200, 1200, 1200, 1200, 1200}; // Mano abierta
 uint16_t calMaxADC[TOTAL_DEDOS] = {3200, 3200, 3200, 3200, 3200}; // Mano cerrada
 
-// Control temporal para integración de Kalman
+// Estado del filtro complementario (ángulos absolutos respecto a la gravedad, °)
+float anguloPitch = 0.0f;
+float anguloRoll  = 0.0f;
+// Offsets del giróscopo medidos en reposo (rad/s)
+float gyroBiasX = 0.0f;
+float gyroBiasY = 0.0f;
 uint32_t tiempoAnteriorMicros = 0;
 uint8_t contadorSecuencia = 0;
 
@@ -79,6 +92,17 @@ void guardarCalibracionNVS();
 void ejecutarCalibracionInteractiva();
 uint16_t leerADCSobremuestreado(int pin, uint8_t muestras = 16);
 void tareaTransmision(void* pvParameters);
+void calibrarIMU();
+
+// Ángulos absolutos por acelerómetro (°). Independientes de la escala (m/s² o g).
+static inline float rollAcc(const sensors_event_t& a) {
+    return atan2(a.acceleration.y, a.acceleration.z) * RAD_TO_DEG;
+}
+static inline float pitchAcc(const sensors_event_t& a) {
+    return atan2(-a.acceleration.x,
+                 sqrt(a.acceleration.y * a.acceleration.y +
+                      a.acceleration.z * a.acceleration.z)) * RAD_TO_DEG;
+}
 
 // ==========================================
 // CALLBACK DE ESP-NOW (Tx Status)
@@ -190,6 +214,35 @@ uint16_t leerADCSobremuestreado(int pin, uint8_t muestras) {
 }
 
 // ==========================================
+// CALIBRACIÓN DE OFFSETS DEL MPU6050 (REPOSO)
+// ==========================================
+/**
+ * @brief Promedia el giróscopo en reposo para obtener su offset e inicializa
+ * el filtro con el ángulo absoluto del acelerómetro (sin transitorio desde 0°).
+ * La mano debe permanecer QUIETA durante ~1.5 s.
+ */
+void calibrarIMU() {
+    Serial.println("[MPU6050] Calibrando offsets: mantener la mano QUIETA...");
+    const int N = 500;
+    float sumGx = 0, sumGy = 0, sumPitch = 0, sumRoll = 0;
+    sensors_event_t a, g, temp;
+    for (int i = 0; i < N; i++) {
+        mpu.getEvent(&a, &g, &temp);
+        sumGx += g.gyro.x;
+        sumGy += g.gyro.y;
+        sumPitch += pitchAcc(a);
+        sumRoll  += rollAcc(a);
+        delay(3);
+    }
+    gyroBiasX   = sumGx / N;
+    gyroBiasY   = sumGy / N;
+    anguloPitch = sumPitch / N;
+    anguloRoll  = sumRoll / N;
+    Serial.printf("[MPU6050] Bias gyro X:%.4f Y:%.4f rad/s | Inicial P:%.1f R:%.1f°\n",
+                  gyroBiasX, gyroBiasY, anguloPitch, anguloRoll);
+}
+
+// ==========================================
 // SETUP
 // ==========================================
 void setup() {
@@ -228,6 +281,7 @@ void setup() {
         mpu.setGyroRange(MPU6050_RANGE_500_DEG);
         mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
         Serial.println("[MPU6050] Configurado exitosamente (±2G, 500°/s, DLPF 21Hz).");
+        calibrarIMU();
     }
 
     // 4. Inicialización de Radio Wi-Fi y ESP-NOW
@@ -256,7 +310,7 @@ void setup() {
         Serial.println("[ESP-NOW] Receptor emparejado correctamente.");
     }
 
-    // Inicializar temporización de filtro Kalman
+    // Inicializar temporización del filtro complementario
     tiempoAnteriorMicros = micros();
 
     // 5. Creación de Tarea de Transmisión determinista en Core 1
@@ -303,7 +357,7 @@ void tareaTransmision(void* pvParameters) {
         }
 
         // -------------------------------------------------------------
-        // 2. ADQUISICIÓN IMU (MPU6050) Y FUSIÓN POR KALMAN
+        // 2. ADQUISICIÓN IMU (MPU6050) Y FUSIÓN COMPLEMENTARIA
         // -------------------------------------------------------------
         sensors_event_t a, g, temp;
         if (mpu.getEvent(&a, &g, &temp)) {
@@ -314,39 +368,34 @@ void tareaTransmision(void* pvParameters) {
             // Protección ante desbordamiento o dt anómalo
             if (dt <= 0.0f || dt > 0.1f) dt = 0.02f;
 
-            // Cálculo trigonométrico de inclinación (Pitch)
-            float rawPitch = -(atan2(a.acceleration.x,
-                                     sqrt(a.acceleration.y * a.acceleration.y +
-                                          a.acceleration.z * a.acceleration.z)) * 180.0f) / PI;
+            // Velocidades angulares sin offset (°/s). Signos coherentes con pitchAcc/rollAcc
+            // (regla de la mano derecha: +gyro.y aumenta pitch, +gyro.x aumenta roll).
+            float gyroRatePitch = (g.gyro.y - gyroBiasY) * RAD_TO_DEG;
+            float gyroRateRoll  = (g.gyro.x - gyroBiasX) * RAD_TO_DEG;
 
-            // Protección de singularidad (zona prohibida en Roll cuando Pitch se alinea con gravedad)
-            float rawRoll;
-            if (rawPitch > 80.0f || rawPitch < -80.0f) {
-                rawRoll = kalmanRoll.getAngle(rawRoll, 0.0f, dt); // Retiene ángulo anterior
-            } else {
-                rawRoll = (atan2(a.acceleration.y, a.acceleration.z) * 180.0f) / PI;
+            // Filtro complementario: el giróscopo aporta respuesta rápida y el
+            // acelerómetro ancla el ángulo a la gravedad (sin drift acumulado).
+            anguloPitch = ALPHA_COMPLEMENTARIO * (anguloPitch + gyroRatePitch * dt)
+                        + (1.0f - ALPHA_COMPLEMENTARIO) * pitchAcc(a);
+
+            // Cerca de ±90° de pitch el roll del acelerómetro es indeterminado:
+            // se retiene el último valor válido en vez de integrar el gyro a ciegas.
+            if (fabs(anguloPitch) < 80.0f) {
+                anguloRoll = ALPHA_COMPLEMENTARIO * (anguloRoll + gyroRateRoll * dt)
+                           + (1.0f - ALPHA_COMPLEMENTARIO) * rollAcc(a);
             }
 
-            // Conversión de velocidades angulares a grados/segundo
-            float gyroRatePitch = -(g.gyro.y * 180.0f / PI);
-            float gyroRateRoll  =  (g.gyro.x * 180.0f / PI);
+            // Mapeo absoluto y unívoco ángulo de mano -> ángulo de servo, saturado
+            // Pitch: tramos lineales con 0° de mano = SERVO_V_NEUTRO
+            float p = constrain(anguloPitch - TRIM_PITCH_DEG, PITCH_MANO_ABAJO, PITCH_MANO_ARRIBA);
+            float servoV = (p >= 0.0f)
+                ? SERVO_V_NEUTRO - (p / PITCH_MANO_ARRIBA) * (SERVO_V_NEUTRO - SERVO_V_MIN)
+                : SERVO_V_NEUTRO + (p / PITCH_MANO_ABAJO)  * (SERVO_V_MAX - SERVO_V_NEUTRO);
+            paqueteSalida.muniecaVertical = (int16_t)lroundf(constrain(servoV, SERVO_V_MIN, SERVO_V_MAX));
 
-            // Estimación de estados con Filtro de Kalman
-            float smoothPitch = kalmanPitch.getAngle(rawPitch, gyroRatePitch, dt);
-            float smoothRoll  = kalmanRoll.getAngle(rawRoll, gyroRateRoll, dt);
-
-            // Mapeo por tramos para el servo de elevación vertical (Pitch)
-            int pitchMapeado;
-            if (smoothPitch >= 0.0f) {
-                pitchMapeado = map((long)smoothPitch, 0, 45, 57, 25);
-            } else {
-                pitchMapeado = map((long)smoothPitch, -25, 0, 90, 57);
-            }
-            paqueteSalida.muniecaVertical = (int16_t)constrain(pitchMapeado, 25, 90);
-
-            // Mapeo para rotación de muñeca (Roll)
-            int rollMapeado = map((long)smoothRoll, -90, 90, 0, 180);
-            paqueteSalida.muniecaRotacional = (int16_t)constrain(rollMapeado, 0, 180);
+            // Roll: -90..+90° de mano -> 0..180° de servo
+            float r = constrain(anguloRoll - TRIM_ROLL_DEG, -ROLL_MANO_MAX, ROLL_MANO_MAX);
+            paqueteSalida.muniecaRotacional = (int16_t)lroundf(constrain(r + 90.0f, 0.0f, 180.0f));
         }
 
         // -------------------------------------------------------------

@@ -62,6 +62,11 @@ const float HOME_DEDOS        = 25.0f; // Mano abierta relajada
 const float HOME_MUNIECA_VERT = 57.0f; // Posición media horizontal
 const float HOME_MUNIECA_ROT  = 90.0f; // Muñeca en ángulo neutro
 
+// Límites mecánicos absolutos (protección de la mano 3D ante paquetes fuera de rango)
+const float LIM_DEDOS_MIN = 25.0f,        LIM_DEDOS_MAX = 90.0f;
+const float LIM_MUNIECA_VERT_MIN = 25.0f, LIM_MUNIECA_VERT_MAX = 90.0f;
+const float LIM_MUNIECA_ROT_MIN = 0.0f,   LIM_MUNIECA_ROT_MAX = 180.0f;
+
 // ==========================================
 // MÁQUINA DE ESTADOS FINITOS (FSM)
 // ==========================================
@@ -254,10 +259,10 @@ void tareaControlActuadores(void* pvParameters) {
 
             // Actualizar referencias objetivo
             for (int i = 0; i < TOTAL_DEDOS; i++) {
-                posObjetivoDedos[i] = (float)paqueteEntrante.anguloDedos[i];
+                posObjetivoDedos[i] = constrain((float)paqueteEntrante.anguloDedos[i], LIM_DEDOS_MIN, LIM_DEDOS_MAX);
             }
-            posObjetivoMuniecaVert = (float)paqueteEntrante.muniecaVertical;
-            posObjetivoMuniecaRot  = (float)paqueteEntrante.muniecaRotacional;
+            posObjetivoMuniecaVert = constrain((float)paqueteEntrante.muniecaVertical, LIM_MUNIECA_VERT_MIN, LIM_MUNIECA_VERT_MAX);
+            posObjetivoMuniecaRot  = constrain((float)paqueteEntrante.muniecaRotacional, LIM_MUNIECA_ROT_MIN, LIM_MUNIECA_ROT_MAX);
         }
 
         // 2. DETECCIÓN DE TIMEOUT Y SUPERVISIÓN DE FAILSAFE
