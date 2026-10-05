@@ -50,12 +50,17 @@ const float DEADBAND_DEDOS   = 1.0f;
 const float DEADBAND_MUNIECA = 1.2f;
 
 // Velocidad angular máxima permitida por ciclo (Slew-Rate Limiting a 50 Hz)
-// SG90 (dedos): 3.0° / 20ms = 150°/segundo
-const float VEL_MAX_DEDOS = 3.0f;
-// MG946R (muñeca vertical - mayor inercia y carga): 1.5° / 20ms = 75°/segundo
-const float VEL_MAX_MUNIECA_VERT = 1.5f;
-// MG946R (muñeca rotacional): 2.0° / 20ms = 100°/segundo
-const float VEL_MAX_MUNIECA_ROT = 2.0f;
+// SG90 (dedos): 8.0° / 20ms = 400°/segundo (el SG90 sin carga llega a ~600°/s)
+const float VEL_MAX_DEDOS = 8.0f;
+// MG946R (muñeca vertical - mayor inercia y carga): 4.0° / 20ms = 200°/segundo
+const float VEL_MAX_MUNIECA_VERT = 4.0f;
+// MG946R (muñeca rotacional): 5.0° / 20ms = 250°/segundo
+const float VEL_MAX_MUNIECA_ROT = 5.0f;
+
+// Sentido de montaje de cada servo de dedo (pulgar..meñique).
+// true = el servo cierra el dedo al BAJAR el ángulo: se espeja dentro de 25..90°.
+// Ajustar por dedo en la prueba C3: con la mano del guante abierta, el dedo robot debe quedar abierto.
+const bool INVERTIR_DEDO[TOTAL_DEDOS] = {true, true, true, true, true};
 
 // Posiciones neutras de reposo seguro (Home)
 const float HOME_DEDOS        = 25.0f; // Mano abierta relajada
@@ -66,6 +71,11 @@ const float HOME_MUNIECA_ROT  = 90.0f; // Muñeca en ángulo neutro
 const float LIM_DEDOS_MIN = 25.0f,        LIM_DEDOS_MAX = 90.0f;
 const float LIM_MUNIECA_VERT_MIN = 25.0f, LIM_MUNIECA_VERT_MAX = 90.0f;
 const float LIM_MUNIECA_ROT_MIN = 0.0f,   LIM_MUNIECA_ROT_MAX = 180.0f;
+
+// Ángulo lógico del dedo (25 = abierto, 90 = cerrado) -> ángulo físico del servo
+static inline int anguloServoDedo(int i, float pos) {
+    return (int)round(INVERTIR_DEDO[i] ? (LIM_DEDOS_MIN + LIM_DEDOS_MAX - pos) : pos);
+}
 
 // ==========================================
 // MÁQUINA DE ESTADOS FINITOS (FSM)
@@ -142,7 +152,7 @@ void acoplarServos() {
     for (int i = 0; i < TOTAL_DEDOS; i++) {
         servoDedos[i].setPeriodHertz(50);
         servoDedos[i].attach(PINES_SERVOS_DEDOS[i], 500, 2400);
-        servoDedos[i].write((int)round(posActualDedos[i]));
+        servoDedos[i].write(anguloServoDedo(i, posActualDedos[i]));
     }
 
     servoMuniecaVert.setPeriodHertz(50);
@@ -206,6 +216,7 @@ void setup() {
 
     // Inicializar Radio Wi-Fi y ESP-NOW
     WiFi.mode(WIFI_STA);
+    WiFi.setSleep(false); // Sin ahorro de energía del modem: evita latencia/pérdida en la recepción
     Serial.print("[INFO] Dirección MAC Receptora: ");
     Serial.println(WiFi.macAddress());
 
@@ -292,7 +303,7 @@ void tareaControlActuadores(void* pvParameters) {
                 float incremento = constrain(error, -VEL_MAX_DEDOS, VEL_MAX_DEDOS);
                 posActualDedos[i] += incremento;
                 if (servosAcoplados) {
-                    servoDedos[i].write((int)round(posActualDedos[i]));
+                    servoDedos[i].write(anguloServoDedo(i, posActualDedos[i]));
                 }
             }
         }

@@ -146,9 +146,10 @@ $$\Delta\theta = \text{constrain}(\theta_{objetivo} - \theta_{actual}, -\Delta\t
 $$\theta_{actual}[k] = \theta_{actual}[k-1] + \Delta\theta$$
 
 * **Parámetros configurados:**
-  * Dedos (SG90): $\Delta\theta_{max} = 3.0^\circ$ por ciclo de 20 ms ($150^\circ/\text{s}$). Movimiento ágil pero controlado.
-  * Muñeca Vertical (MG946R): $\Delta\theta_{max} = 1.5^\circ$ por ciclo ($75^\circ/\text{s}$). Evita sacudidas bruscas de la masa total de la mano.
-  * Muñeca Rotacional (MG946R): $\Delta\theta_{max} = 2.0^\circ$ por ciclo ($100^\circ/\text{s}$).
+  * Dedos (SG90): $\Delta\theta_{max} = 8.0^\circ$ por ciclo de 20 ms ($400^\circ/\text{s}$).
+  * Muñeca Vertical (MG946R): $\Delta\theta_{max} = 4.0^\circ$ por ciclo ($200^\circ/\text{s}$).
+  * Muñeca Rotacional (MG946R): $\Delta\theta_{max} = 5.0^\circ$ por ciclo ($250^\circ/\text{s}$).
+  * Valores anteriores (3.0 / 1.5 / 2.0) resultaron lentos en la prueba del 2026-10-05.
 
 ### 4.3. Banda Muerta (*Deadband*)
 Si $|\theta_{objetivo} - \theta_{actual}| < 1.0^\circ$ (dedos) o $< 1.2^\circ$ (muñeca), la posición no se actualiza en el servo.  
