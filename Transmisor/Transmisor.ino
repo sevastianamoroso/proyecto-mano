@@ -279,8 +279,8 @@ void setup() {
     } else {
         mpu.setAccelerometerRange(MPU6050_RANGE_2_G);
         mpu.setGyroRange(MPU6050_RANGE_500_DEG);
-        mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
-        Serial.println("[MPU6050] Configurado exitosamente (±2G, 500°/s, DLPF 21Hz).");
+        mpu.setFilterBandwidth(MPU6050_BAND_44_HZ); // retardo ~4.9 ms (vs 8.5 ms a 21 Hz)
+        Serial.println("[MPU6050] Configurado exitosamente (±2G, 500°/s, DLPF 44Hz).");
         calibrarIMU();
     }
 

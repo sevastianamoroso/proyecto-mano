@@ -248,17 +248,16 @@ void setup() {
 // TAREA DE TIEMPO REAL: CONTROL Y SLEW-RATE
 // ==========================================
 void tareaControlActuadores(void* pvParameters) {
-    TickType_t xLastWakeTime = xTaskGetTickCount();
     MensajeBrazo paqueteEntrante;
     uint32_t ticksTelemetria = 0;
     uint32_t tiempoEnHomeMs = 0;
 
     for (;;) {
-        // Ejecución estrictamente periódica a 50 Hz
-        vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(PERIODO_CONTROL_MS));
-
-        // 1. REVISAR SI LLEGARON NUEVOS DATOS DESDE LA COLA
-        if (xQueueReceive(colaMensajesBrazo, &paqueteEntrante, 0) == pdTRUE) {
+        // 1. ESPERAR UN PAQUETE: la tarea despierta apenas llega (sin esperar al próximo tick
+        // de 50 Hz). Sin paquetes, el timeout mantiene el ciclo a 50 Hz para failsafe y trayectoria.
+        // ponytail: el slew es por iteración y el Tx manda a 50 Hz; si se sube la tasa del Tx,
+        // escalar VEL_MAX_* por el dt real.
+        if (xQueueReceive(colaMensajesBrazo, &paqueteEntrante, pdMS_TO_TICKS(PERIODO_CONTROL_MS)) == pdTRUE) {
             marcaTiempoUltimoPaquete = millis();
 
             // Si estábamos desconectados o esperando sync, pasar a operación normal
