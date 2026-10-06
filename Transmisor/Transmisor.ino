@@ -84,6 +84,8 @@ uint8_t contadorSecuencia = 0;
 
 // Estado de enlace ESP-NOW
 volatile bool ultimoEnvioExitoso = false;
+// true mientras corre la calibración de dedos: la tarea no transmite ni imprime
+volatile bool calibrando = false;
 
 // Prototipos de funciones
 void rutinaRecuperacionI2C(int pinSDA, int pinSCL);
@@ -176,7 +178,11 @@ void guardarCalibracionNVS() {
 }
 
 void ejecutarCalibracionInteractiva() {
+    // La tarea de transmisión (prioridad 2, mismo núcleo) ya terminó su ciclo cuando loop() llega acá:
+    // desde su próximo ciclo deja de leer dedos, transmitir e imprimir.
+    calibrando = true;
     Serial.println("\n=== INICIANDO RUTINA DE CALIBRACIÓN BI-PUNTO ===");
+    Serial.println("Transmisión y telemetría PAUSADAS (la mano robot irá a Home por failsafe).");
     Serial.println("Paso 1: Abra completamente la mano.");
     Serial.println("Enviando comando... Ingrese cualquier caracter y presione ENTER para registrar MIN.");
     while (Serial.available() == 0) { delay(50); }
@@ -199,6 +205,7 @@ void ejecutarCalibracionInteractiva() {
 
     guardarCalibracionNVS();
     Serial.println("=== CALIBRACIÓN COMPLETADA CON ÉXITO ===\n");
+    calibrando = false;
 }
 
 // ==========================================
@@ -340,24 +347,7 @@ void tareaTransmision(void* pvParameters) {
         vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(PERIODO_CONTROL_MS));
 
         // -------------------------------------------------------------
-        // 1. ADQUISICIÓN Y MAPEADO CALIBRADO DE DEDOS (POTENCIÓMETROS)
-        // -------------------------------------------------------------
-        for (int i = 0; i < TOTAL_DEDOS; i++) {
-            uint16_t adcRaw = leerADCSobremuestreado(PINES_DEDOS[i], 16);
-
-            // Mapeo seguro con calibración bi-punto
-            int16_t anguloDedo;
-            if (calMaxADC[i] > calMinADC[i]) {
-                anguloDedo = map(adcRaw, calMinADC[i], calMaxADC[i], 25, 90);
-            } else {
-                // Caso inverso (potenciómetro montado en polaridad invertida)
-                anguloDedo = map(adcRaw, calMaxADC[i], calMinADC[i], 90, 25);
-            }
-            paqueteSalida.anguloDedos[i] = (uint16_t)constrain(anguloDedo, 25, 90);
-        }
-
-        // -------------------------------------------------------------
-        // 2. ADQUISICIÓN IMU (MPU6050) Y FUSIÓN COMPLEMENTARIA
+        // 1. ADQUISICIÓN IMU (MPU6050) Y FUSIÓN COMPLEMENTARIA
         // -------------------------------------------------------------
         sensors_event_t a, g, temp;
         if (mpu.getEvent(&a, &g, &temp)) {
@@ -396,6 +386,27 @@ void tareaTransmision(void* pvParameters) {
             // Roll: -90..+90° de mano -> 0..180° de servo
             float r = constrain(anguloRoll - TRIM_ROLL_DEG, -ROLL_MANO_MAX, ROLL_MANO_MAX);
             paqueteSalida.muniecaRotacional = (int16_t)lroundf(constrain(r + 90.0f, 0.0f, 180.0f));
+        }
+
+        // Durante la calibración no se lee el ADC (lo usa la rutina de calibración),
+        // no se transmite ni se imprime. El IMU sigue arriba para no perder el estado del filtro.
+        if (calibrando) continue;
+
+        // -------------------------------------------------------------
+        // 2. ADQUISICIÓN Y MAPEADO CALIBRADO DE DEDOS (POTENCIÓMETROS)
+        // -------------------------------------------------------------
+        for (int i = 0; i < TOTAL_DEDOS; i++) {
+            uint16_t adcRaw = leerADCSobremuestreado(PINES_DEDOS[i], 16);
+
+            // Mapeo seguro con calibración bi-punto
+            int16_t anguloDedo;
+            if (calMaxADC[i] > calMinADC[i]) {
+                anguloDedo = map(adcRaw, calMinADC[i], calMaxADC[i], 25, 90);
+            } else {
+                // Caso inverso (potenciómetro montado en polaridad invertida)
+                anguloDedo = map(adcRaw, calMaxADC[i], calMinADC[i], 90, 25);
+            }
+            paqueteSalida.anguloDedos[i] = (uint16_t)constrain(anguloDedo, 25, 90);
         }
 
         // -------------------------------------------------------------
