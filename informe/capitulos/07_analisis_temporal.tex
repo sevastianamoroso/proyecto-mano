@@ -1,0 +1,27 @@
+\section{Análisis temporal}
+\label{sec:latencia}
+
+La tabla~\ref{tab:latencia} estima el retardo desde que el operador mueve la mano hasta que el servo recibe la nueva orden. \textbf{Son estimaciones a partir del código y de las hojas de datos, no mediciones} sobre el hardware.
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{X c X}
+\toprule
+\textbf{Etapa} & \textbf{Retardo} & \textbf{Origen} \\
+\midrule
+Espera hasta el siguiente ciclo del transmisor & 0--\SI{20}{\milli\second} (media 10) & Muestreo a \SI{50}{\hertz} \\
+Filtro interno del MPU6050 (sólo muñeca) & $\approx\SI{5}{\milli\second}$ & DLPF de \SI{44}{\hertz} \cite{mpu6050_regmap} \\
+Lectura de dedos, cálculo y empaquetado & $\approx\SI{5}{\milli\second}$ & Sobremuestreo $16\times$ \\
+Transmisión ESP-NOW & $\approx$ 1--\SI{6}{\milli\second} & Valores típicos reportados \cite{espnow_faq, espnow_issue115} \\
+Tarea de control del receptor & $<\SI{1}{\milli\second}$ & Despierta al llegar el paquete \\
+Siguiente pulso PWM del servo & 0--\SI{20}{\milli\second} (media 10) & PWM de \SI{50}{\hertz} \\
+Movimiento mecánico & según amplitud & $\approx\SI{0.1}{\second}$ cada \SI{60}{\degree} (SG90 sin carga) \\
+\bottomrule
+\end{tabularx}
+\caption{Estimación de la cadena de retardos (versión 2.2.0 y posteriores).}
+\label{tab:latencia}
+\end{table}
+
+En promedio, la orden llega al servo unos \SI{30}{\milli\second} después del movimiento del operador, a lo que se suma el tiempo que tarda el servo en recorrer el ángulo. Para medir la latencia real de punta a punta se propone conmutar un pin de salida en cada extremo (al leer el sensor en el transmisor y al escribir el servo en el receptor) y observar ambas señales con un osciloscopio, o incluir una marca de tiempo del transmisor dentro del paquete.
+
+\pendiente{Reemplazar o complementar esta estimación con la medición, cuando se realice.}

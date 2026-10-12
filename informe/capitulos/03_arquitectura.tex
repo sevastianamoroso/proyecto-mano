@@ -1,0 +1,107 @@
+\section{Arquitectura del sistema}
+\label{sec:arquitectura}
+
+\subsection{Visión general}
+
+La figura~\ref{fig:sistema} resume el sistema. El transmisor mide los dedos y la muñeca del operador, calcula los ángulos que deben tomar los servos y los envía por ESP-NOW 50 veces por segundo. El receptor valida cada paquete, genera una trayectoria suave hacia los ángulos recibidos y comanda los servomotores.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=0.6cm and 1.2cm]
+  % Transmisor
+  \node[bloque] (pot) {5 potenciómetros\\(dedos)};
+  \node[bloque, below=of pot] (imu) {MPU6050\\(muñeca)};
+  \coordinate (medio) at ($(pot)!0.5!(imu)$);
+  \node[bloque, right=1.9cm of medio, fill=orange!10, minimum width=3.4cm] (tx)
+       {\textbf{ESP32 Transmisor}\\ ADC sobremuestreado\\ Filtro complementario\\ Ángulos de servo\\ Empaquetado + checksum};
+  \node[draw, dashed, rounded corners, inner sep=6pt, fit=(pot)(imu)(tx), label=above:{\textbf{Guante}}] {};
+  % Receptor
+  \node[bloque, right=1.7cm of tx, fill=green!10, minimum width=3.4cm] (rx)
+       {\textbf{ESP32 Receptor}\\ Validación del paquete\\ Supervisión (failsafe)\\ Limitador de velocidad\\ Banda muerta};
+  \node[bloque, right=of rx, yshift=0.8cm] (sg) {5 servos SG90\\(dedos)};
+  \node[bloque, right=of rx, yshift=-0.8cm] (mg) {2 servos MG946R\\(muñeca)};
+  \node[draw, dashed, rounded corners, inner sep=6pt, fit=(rx)(sg)(mg), label=above:{\textbf{Mano robótica}}] {};
+  % Flechas
+  \draw[flecha] (pot) -- (tx);
+  \draw[flecha] (imu) -- (tx);
+  \draw[flecha, very thick, blue!60!black] (tx) -- node[above, font=\footnotesize, align=center]{ESP-NOW\\2,4 GHz} node[below, font=\footnotesize, align=center]{19 bytes\\50 Hz} (rx);
+  \draw[flecha] (rx) -- node[above, font=\footnotesize]{PWM} (sg);
+  \draw[flecha] (rx) -- node[below, font=\footnotesize]{PWM} (mg);
+\end{tikzpicture}
+\caption{Diagrama en bloques del sistema.}
+\label{fig:sistema}
+\end{figure}
+
+Una decisión de diseño atraviesa todo el firmware: \textbf{el transmisor envía ángulos de servo ya calculados} (por ejemplo, \SIrange{25}{90}{\degree} para los dedos), no lecturas crudas de los sensores. De este modo, toda la calibración propia del operador reside en el guante y el receptor sólo se ocupa de mover los motores de forma segura. Si cambia el operador, se recalibra el guante sin modificar la mano.
+
+\subsection{Organización del firmware en tiempo real}
+
+Ambos firmwares están escritos en C++ sobre el núcleo Arduino para ESP32, que a su vez corre sobre el sistema operativo de tiempo real FreeRTOS. El ESP32 tiene dos núcleos: la pila Wi-Fi (y por lo tanto ESP-NOW) se ejecuta por defecto en el núcleo 0, por lo que las tareas de control de este proyecto se fijaron al núcleo 1 con \texttt{xTaskCreatePinnedToCore()}. La tabla~\ref{tab:tareas} resume las tareas de cada nodo.
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{l l c c X}
+\toprule
+\textbf{Nodo} & \textbf{Tarea} & \textbf{Núcleo} & \textbf{Prioridad} & \textbf{Función} \\
+\midrule
+Transmisor & \texttt{tareaTransmision} & 1 & 2 & Ciclo periódico de \SI{20}{\milli\second}: IMU, dedos, empaquetado y envío \\
+Transmisor & \texttt{loop()} & 1 & 1 & Atiende el puerto serie (comando de calibración) \\
+Receptor & Callback ESP-NOW & 0 & --- & Valida el paquete y lo deposita en la cola (corre en la tarea Wi-Fi) \\
+Receptor & \texttt{tareaControlActuadores} & 1 & 3 & Supervisión del enlace, trayectoria y escritura de los servos \\
+\bottomrule
+\end{tabularx}
+\caption{Tareas FreeRTOS de cada nodo.}
+\label{tab:tareas}
+\end{table}
+
+\subsection{Protocolo de comunicación}
+\label{sec:protocolo}
+
+Ambos nodos comparten el archivo \texttt{ProtocoloBrazo.h}, que define la estructura del paquete y las funciones de verificación. Como el entorno de Arduino sólo compila archivos que están dentro de la carpeta de cada programa, existen dos copias idénticas del archivo, una por nodo, que deben mantenerse iguales.
+
+\begin{lstlisting}[caption={Estructura del paquete (\texttt{ProtocoloBrazo.h}).}, label={cod:paquete}]
+#pragma pack(push, 1)
+struct MensajeBrazo {
+    uint16_t magicHeader;        // 0xAA55
+    uint8_t  secuencia;          // 0..255, incremental
+    uint16_t anguloDedos[5];     // 25..90°
+    int16_t  muniecaVertical;    // 25..90°
+    int16_t  muniecaRotacional;  // 0..180°
+    uint16_t checksum;           // Fletcher-16
+};
+#pragma pack(pop)
+\end{lstlisting}
+
+La directiva \texttt{\#pragma pack(push, 1)} evita que el compilador agregue bytes de relleno (\textit{padding}) para alinear los campos de 16 bits. Así, la estructura ocupa exactamente 19 bytes y tiene la misma disposición en memoria en ambos ESP32, lo que permite enviarla tal cual y reinterpretarla del otro lado sin serializar campo por campo. La tabla~\ref{tab:paquete} detalla la trama, muy por debajo del máximo de 250 bytes por paquete que admite ESP-NOW \cite{espnow_idf}.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{c l c l}
+\toprule
+\textbf{Bytes} & \textbf{Campo} & \textbf{Tamaño} & \textbf{Contenido} \\
+\midrule
+0--1   & \texttt{magicHeader}       & 2 & Firma fija \texttt{0xAA55} \\
+2      & \texttt{secuencia}         & 1 & Contador que vuelve a 0 después de 255 \\
+3--12  & \texttt{anguloDedos[0..4]} & 10 & Pulgar, índice, medio, anular y meñique \\
+13--14 & \texttt{muniecaVertical}   & 2 & Ángulo del servo de muñeca vertical \\
+15--16 & \texttt{muniecaRotacional} & 2 & Ángulo del servo de rotación \\
+17--18 & \texttt{checksum}          & 2 & Fletcher-16 de los bytes 0 a 16 \\
+\midrule
+       & \textbf{Total}             & \textbf{19} & \\
+\bottomrule
+\end{tabular}
+\caption{Formato de la trama.}
+\label{tab:paquete}
+\end{table}
+
+\subsubsection{Verificación de integridad}
+
+El receptor acepta un paquete sólo si cumple tres condiciones: su longitud es de 19 bytes, comienza con la firma \texttt{0xAA55} y su suma de verificación coincide. La suma de verificación es el algoritmo de Fletcher \cite{fletcher1982}, calculado sobre los $N = 17$ bytes $b_i$ previos al campo \texttt{checksum}:
+\begin{equation}
+s_1^{(i)} = \left(s_1^{(i-1)} + b_i\right) \bmod 255, \qquad
+s_2^{(i)} = \left(s_2^{(i-1)} + s_1^{(i)}\right) \bmod 255, \qquad
+\text{checksum} = 256\, s_2^{(N)} + s_1^{(N)}
+\end{equation}
+con $s_1^{(0)} = s_2^{(0)} = 0$. La suma $s_1$ acumula el valor de los bytes y $s_2$ acumula las sumas parciales, por lo que depende también de la \emph{posición} de cada byte: a diferencia de una suma simple, detecta bytes intercambiados. También detecta cualquier error de un único bit. Se eligió frente a un CRC por su simplicidad (sólo sumas, sin tablas ni polinomios); la capa MAC de Wi-Fi (IEEE 802.11) ya incorpora su propio CRC-32, por lo que este control funciona como una segunda barrera a nivel de aplicación, por ejemplo frente a paquetes de otro dispositivo ESP-NOW cercano.
+
+El número de \texttt{secuencia} se incrementa en cada envío y permite identificar paquetes perdidos al analizar la telemetría.

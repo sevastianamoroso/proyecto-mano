@@ -1,0 +1,60 @@
+\section{Pruebas}
+\label{sec:pruebas}
+
+\pendiente{Las mediciones de esta sección se tomaron con la versión preliminar del firmware (filtros EMA y filtro de Kalman). Deben repetirse con la versión actual siguiendo el plan de pruebas (\texttt{docs/\allowbreak pruebas/\allowbreak PLAN\_PRUEBAS.md} del repositorio) y reemplazar las figuras y conclusiones.}
+
+Se analizó la utilidad de los filtros para cada medición realizada en el ESP32. Primero se observaron las mediciones del MPU6050 con el módulo totalmente quieto y luego con un pequeño movimiento. Para el \textit{pitch} resulta:
+
+\begin{figure}[H]
+ \centering
+  \subfigure[\textit{Pitch} sin movimiento]{
+    \includegraphics[width=0.45\textwidth]{Pitch_Ruido_Sin_Movimiento.png}}
+  \subfigure[\textit{Pitch} con movimiento]{
+    \includegraphics[width=0.45\textwidth]{Pitch_Ruido_Con_Movimiento.png}}
+ \caption{Medición de \textit{pitch}.}
+ \label{f:Ruido_Pitch}
+\end{figure}
+
+y para el \textit{roll} se observa:
+
+\begin{figure}[H]
+ \centering
+  \subfigure[\textit{Roll} sin movimiento]{
+    \includegraphics[width=0.45\textwidth]{Roll_Ruido_Sin_Movimiento.png}}
+  \subfigure[\textit{Roll} con movimiento]{
+    \includegraphics[width=0.45\textwidth]{Roll_Ruido_Con_Movimiento.png}}
+ \caption{Medición de \textit{roll}.}
+ \label{f:Ruido_Roll}
+\end{figure}
+
+Luego se analizó el comportamiento de los potenciómetros, comparando los datos leídos en crudo con los filtrados:
+
+\begin{figure}[H]
+ \centering
+  \subfigure[Cambio lento]{
+    \includegraphics[width=0.45\textwidth]{Pote_Ruido.png}}
+  \subfigure[Cambio brusco]{
+    \includegraphics[width=0.45\textwidth]{Pote_Ruido_1.png}}
+ \caption{Respuesta de un potenciómetro.}
+ \label{f:Ruido_Potenciometros}
+\end{figure}
+
+Con el filtrado, la respuesta de la lectura es más lenta. En la versión preliminar esto se consideró deseable para proteger el mecanismo; sin embargo, sumado al filtro del receptor, el retardo resultó perceptible, lo que motivó los cambios descriptos en la sección~\ref{sec:evolucion}.
+
+A continuación se observa la respuesta del sistema completo, transmisor y receptor:
+
+\begin{figure}[H]
+ \centering
+  \subfigure[Desplazamiento vertical]{
+    \includegraphics[width=0.47\textwidth]{Transmicion_1.png}}
+  \subfigure[Rotación]{
+    \includegraphics[width=0.47\textwidth]{Transmicion_2.png}}
+  \subfigure[Subir dedo]{
+    \includegraphics[width=0.47\textwidth]{Transmicion_3.png}}
+  \subfigure[Bajar dedo]{
+    \includegraphics[width=0.47\textwidth]{Transmicion_4.png}}
+ \caption{Respuesta del sistema.}
+ \label{f:Respuesta_Sistema}
+\end{figure}
+
+Se observa un pequeño retardo entre la lectura en el transmisor y la réplica en el receptor, de aproximadamente \SI{20}{\milli\second}. \pendiente{Indicar cómo se midió este valor.}

@@ -1,0 +1,129 @@
+\section{Evolución del diseño}
+\label{sec:evolucion}
+
+El firmware se desarrolló de forma iterativa: cada versión se probó en el hardware y los problemas observados motivaron la siguiente. Las versiones están identificadas con etiquetas (\textit{tags}) en el repositorio de git del proyecto, lo que permite reproducir cualquiera de ellas. La tabla~\ref{tab:versiones} resume la evolución y las secciones siguientes explican cada cambio.
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{l X X}
+\toprule
+\textbf{Versión} & \textbf{Cambios principales} & \textbf{Motivo} \\
+\midrule
+Preliminar & Filtro EMA en el guante y en la mano, bucle con \texttt{delay(20)}, envío de lecturas crudas del ADC & Primera implementación funcional \\
+1.0.0 & Tareas FreeRTOS, cola, protocolo con checksum, limitador de velocidad y banda muerta, calibración en NVS, filtro de Kalman en la muñeca & Retardo y zumbido de la versión preliminar \\
+2.0.0 & Filtro complementario, calibración del giróscopo, mapeo en punto flotante & La muñeca derivaba ``como un mouse'' \\
+2.1.0 & Limitador de velocidad más rápido, inversión de dedos por software & La mano respondía lento; dedos invertidos \\
+2.2.0 & El receptor procesa cada paquete al llegar; DLPF a \SI{44}{\hertz} & Reducir la latencia \\
+2.3.0 & Transmisión pausada durante la calibración & Consola y mano confusas al calibrar \\
+\bottomrule
+\end{tabularx}
+\caption{Versiones del firmware. La versión 2.2.0 fue la última validada en hardware; la 2.3.0 sólo agrega la pausa durante la calibración.}
+\label{tab:versiones}
+\end{table}
+
+\subsection{Versión preliminar}
+
+En la primera implementación, el transmisor leía los potenciómetros, les aplicaba un filtro de media móvil exponencial (EMA),
+\begin{equation}
+y[k] = \alpha\, x[k] + (1-\alpha)\, y[k-1],
+\end{equation}
+con $\alpha = 0{,}15$, y enviaba las lecturas del ADC sin convertir. El receptor convertía esas lecturas a ángulos y aplicaba un segundo filtro EMA ($\alpha = 0{,}2$ para los dedos y $0{,}3$ para la muñeca) antes de escribir los servos. Ambos programas usaban un bucle con \texttt{delay(20)} y, en el receptor, el callback de recepción copiaba el paquete directamente sobre una variable global. La tabla~\ref{tab:preliminar} resume los problemas encontrados.
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{X X X}
+\toprule
+\textbf{Planteo inicial} & \textbf{Problema} & \textbf{Solución adoptada} \\
+\midrule
+Dos filtros EMA en cascada (guante y mano) & Los retardos de ambos filtros se suman. Además, el EMA se acerca al objetivo con pasos cada vez más pequeños, que caen dentro de la zona de insensibilidad del servo y lo hacen zumbar & Limitador de velocidad y banda muerta en el receptor (sección~\ref{sec:slew}) \\
+Bucle con \texttt{delay(20)} & El período real es \SI{20}{\milli\second} más el tiempo de cómputo, y varía & Tareas FreeRTOS con \texttt{vTaskDelayUntil} \\
+Callback que escribe una variable global & La tarea principal puede leer un paquete a medio escribir & Cola FreeRTOS de un elemento \\
+Paquete sin verificación & Un paquete corrupto o ajeno se interpretaría como una orden válida & Firma, número de secuencia y checksum (sección~\ref{sec:protocolo}) \\
+Conversión fija de 0--4095 a \SIrange{25}{90}{\degree} & No contempla las diferencias entre dedos ni entre usuarios & Calibración de dos puntos en NVS \\
+\bottomrule
+\end{tabularx}
+\caption{Problemas de la versión preliminar.}
+\label{tab:preliminar}
+\end{table}
+
+\subsection{Versión 1.0.0: filtro de Kalman}
+
+La versión 1.0.0 incorporó la arquitectura descripta en las secciones~\ref{sec:transmisor} y~\ref{sec:receptor}, pero estimaba la orientación de la muñeca con un filtro de Kalman de dos estados por eje \cite{kalman1960}, según la implementación difundida por K.~Lauszus \cite{lauszus_kalman}. El filtro de Kalman es un estimador recursivo que pondera la predicción del modelo y la medición según sus incertidumbres. Su estado es el ángulo $\theta$ y el sesgo del giróscopo $b$, y en cada ciclo ejecuta dos etapas:
+
+\begin{itemize}
+    \item \textbf{Predicción:} con la velocidad angular medida $\omega$, se proyecta el ángulo y se actualiza la matriz de covarianza del error $P$, que crece según el ruido de proceso:
+    \begin{equation}
+    \theta^- = \theta + \Delta t\,(\omega - b), \qquad
+    P^- = F P F^{T} + Q\,\Delta t, \qquad
+    F = \begin{pmatrix} 1 & -\Delta t \\ 0 & 1 \end{pmatrix}, \quad
+    Q = \begin{pmatrix} Q_{angle} & 0 \\ 0 & Q_{bias} \end{pmatrix}.
+    \end{equation}
+    \item \textbf{Corrección:} se compara la predicción con el ángulo del acelerómetro $\theta_{acc}$ y se corrigen ambos estados con la ganancia de Kalman $K$:
+    \begin{equation}
+    S = P^-_{00} + R, \qquad
+    K = \frac{1}{S}\begin{pmatrix} P^-_{00} \\ P^-_{10} \end{pmatrix}, \qquad
+    \begin{pmatrix} \theta \\ b \end{pmatrix} = \begin{pmatrix} \theta^- \\ b \end{pmatrix} + K\left(\theta_{acc} - \theta^-\right), \qquad
+    P = \left(I - K H\right) P^-,
+    \end{equation}
+    con $H = \begin{pmatrix} 1 & 0 \end{pmatrix}$. Si la medición es ruidosa ($R$ grande), $K$ es pequeña y el filtro confía más en la predicción.
+\end{itemize}
+
+Los parámetros utilizados fueron $Q_{angle} = 0{,}001$, $Q_{bias} = 0{,}003$ y $R = 0{,}03$.
+
+\begin{lstlisting}[caption={Etapas del filtro de Kalman (\texttt{KalmanFilter.h}, versión 1.0.0).}, label={cod:kalman}]
+float getAngle(float newAngle, float newRate, float dt) {
+    // 1. Predicción
+    rate = newRate - bias;
+    angle += dt * rate;
+    P[0][0] += dt * (dt * P[1][1] - P[0][1] - P[1][0] + Q_angle);
+    P[0][1] -= dt * P[1][1];
+    P[1][0] -= dt * P[1][1];
+    P[1][1] += Q_bias * dt;
+
+    // 2. Corrección
+    float S = P[0][0] + R_measure;
+    float K[2] = { P[0][0] / S, P[1][0] / S };
+    float y = newAngle - angle;
+    angle += K[0] * y;
+    bias  += K[1] * y;
+
+    float P00_temp = P[0][0], P01_temp = P[0][1];
+    P[0][0] -= K[0] * P00_temp;
+    P[0][1] -= K[0] * P01_temp;
+    P[1][0] -= K[1] * P00_temp;
+    P[1][1] -= K[1] * P01_temp;
+    return angle;
+}
+\end{lstlisting}
+
+En las pruebas, la muñeca de la mano robótica se comportaba ``como un mouse'': derivaba y no volvía a la misma posición cuando el operador volvía a la misma postura. Al revisar el código se encontraron las siguientes causas:
+
+\begin{enumerate}
+    \item \textbf{Signo del giróscopo de \textit{pitch} invertido} respecto del ángulo del acelerómetro. El giróscopo empujaba la estimación en un sentido y el acelerómetro en el contrario, por lo que el resultado dependía de la historia del movimiento.
+    \item \textbf{Variable sin inicializar en el \textit{roll}:} en la zona de singularidad se usaba el ángulo medido antes de asignarle un valor, lo que producía saltos.
+    \item \textbf{Arranque desde \SI{0}{\degree}}, sin ángulo inicial ni calibración del \textit{bias}, con un transitorio al encender.
+    \item \textbf{Conversión a enteros antes del mapeo}, que truncaba el ángulo a grados enteros y no lo saturaba antes de convertirlo.
+\end{enumerate}
+
+\subsection{Versión 2.0.0: filtro complementario}
+
+Se reemplazó el filtro de Kalman por el filtro complementario de la sección~\ref{sec:fusion}. Un filtro de Kalman bien sintonizado no es inferior; sin embargo, para estimar dos ángulos de inclinación a \SI{50}{\hertz}, el filtro complementario da un resultado equivalente en la práctica, tiene un único parámetro ($\alpha$) con interpretación directa, en lugar de tres covarianzas, y es más fácil de verificar. Además se corrigieron los signos del giróscopo, se agregaron la calibración del \textit{bias} y la inicialización desde el acelerómetro, se retiene el \textit{roll} en la singularidad, se pasó a un mapeo en punto flotante saturado y ajustable, y en el receptor se agregaron los límites mecánicos de las posiciones objetivo.
+
+\subsection{Versión 2.1.0: respuesta más rápida y dedos invertibles}
+
+Las pruebas mostraron que la mano tardaba en seguir al guante. La causa era el limitador de velocidad, configurado por debajo de la velocidad de los propios servos: \SI{150}{\degree\per\second} para los dedos y \SI{75}{\degree\per\second} y \SI{100}{\degree\per\second} para la muñeca (un giro completo de \SI{180}{\degree} de la muñeca tardaba \SI{1.8}{\second}). Se elevaron a los valores de la tabla~\ref{tab:param_rx}. También se observó que, al cerrar un dedo del guante, el de la mano se abría, debido al sentido de montaje de los servos; se agregó la inversión por software. Por último, se desactivó el ahorro de energía de la radio también en el receptor.
+
+\subsection{Versión 2.2.0: menor latencia}
+
+Se aplicaron dos cambios de bajo riesgo para reducir la latencia:
+
+\begin{itemize}
+    \item Antes, la tarea del receptor despertaba cada \SI{20}{\milli\second} fijos y recién entonces consultaba la cola, lo que agregaba en promedio \SI{10}{\milli\second} (y hasta \SI{20}{\milli\second}) de espera. Ahora la tarea se bloquea esperando la cola y despierta al llegar el paquete.
+    \item El filtro interno del MPU6050 pasó de \SI{21}{\hertz} a \SI{44}{\hertz}, unos \SI{3.5}{\milli\second} menos de retardo (tabla~\ref{tab:dlpf}).
+\end{itemize}
+
+Esta versión funcionó correctamente en la prueba en hardware.
+
+\subsection{Versión 2.3.0: calibración sin transmisión}
+
+Al calibrar con la versión 2.2.0, la telemetría se mezclaba con las instrucciones en la consola y la mano robótica imitaba los gestos de calibración. Se agregó una bandera que, durante la calibración, detiene la lectura de los dedos, el envío y la telemetría (sección~\ref{sec:calibracion_dedos}).

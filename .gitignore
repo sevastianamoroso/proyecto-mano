@@ -2,3 +2,15 @@ build/
 .vscode/
 *.bkp
 *.$*
+
+# Archivos intermedios de LaTeX
+informe/**/*.aux
+informe/**/*.log
+informe/**/*.out
+informe/**/*.toc
+informe/**/*.bbl
+informe/**/*.blg
+informe/**/*.synctex.gz
+informe/**/*.fdb_latexmk
+informe/**/*.fls
+informe/main.pdf

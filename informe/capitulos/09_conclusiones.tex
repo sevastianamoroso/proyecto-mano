@@ -1,0 +1,25 @@
+\section{Conclusiones}
+\label{sec:conclusiones}
+
+\pendiente{Redactar a partir de los resultados de las pruebas con la versión actual. Puntos sugeridos:}
+{\color{red}
+\begin{itemize}
+    \item Grado de cumplimiento de los objetivos: qué movimientos se replican y con qué calidad.
+    \item Latencia y suavidad obtenidas (medidas).
+    \item Lecciones del proceso iterativo: doble filtrado, filtro de Kalman frente al complementario, importancia de probar en hardware.
+    \item Limitaciones: ausencia de realimentación de fuerza, \textit{yaw} no medido, dependencia de la calibración.
+\end{itemize}}
+
+\subsection{Trabajo futuro}
+
+Durante el desarrollo se identificaron las siguientes mejoras, que no se implementaron:
+
+\begin{itemize}
+    \item \textbf{Medir la latencia real} de punta a punta (sección~\ref{sec:latencia}).
+    \item \textbf{Filtro \textit{One Euro}} \cite{casiez2012} en lugar del limitador de velocidad: filtra fuertemente en reposo y casi nada durante los movimientos rápidos.
+    \item \textbf{Aumentar la tasa de envío a \SI{100}{\hertz}}. El limitador de velocidad actúa por iteración, por lo que en ese caso debería escalarse con el tiempo real entre iteraciones; de lo contrario la velocidad máxima se duplicaría.
+    \item \textbf{PWM de mayor frecuencia en los MG946R}, de \SIrange{100}{200}{\hertz}. El fabricante sólo especifica \SI{50}{\hertz}, por lo que debería probarse vigilando la temperatura de los servos.
+    \item \textbf{Robustez de la calibración:} rechazar una calibración en la que la lectura de mano abierta y cerrada coincidan, que hoy produciría una división por cero en la conversión del dedo.
+    \item \textbf{Emparejamiento sin reprogramar:} la dirección MAC del receptor está fija en el código del transmisor; si se cambia la placa receptora hay que reprogramar el guante.
+    \item \textbf{Realimentación al operador}, por ejemplo háptica, para tareas de manipulación.
+\end{itemize}

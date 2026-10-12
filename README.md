@@ -16,6 +16,7 @@ Un guante transmisor (5 potenciómetros + MPU6050) comanda por ESP-NOW una mano 
 | `EXPLICACION_CODIGO.md` | Explicación detallada del firmware v2.3.0, módulo por módulo, con la evolución desde la v1.0.0 |
 | `docs/DIAGRAMAS.md` | Funcionamiento en diagramas (Mermaid) |
 | `MEJORAS_HARDWARE_Y_FIRMWARE.md` | Notas de mejoras de hardware y firmware |
+| `informe/` | Informe final en LaTeX (proyecto de Overleaf). Ver [`informe/LEEME.md`](informe/LEEME.md) |
 
 ## Versiones
 

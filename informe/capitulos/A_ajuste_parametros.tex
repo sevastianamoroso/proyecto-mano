@@ -1,0 +1,27 @@
+\section{Guía de ajuste de parámetros}
+\label{ap:ajuste}
+
+Todas las constantes ajustables se encuentran al comienzo de cada programa. La tabla~\ref{tab:ajuste} indica qué modificar ante cada síntoma.
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{X l l}
+\toprule
+\textbf{Síntoma} & \textbf{Parámetro} & \textbf{Nodo} \\
+\midrule
+Un dedo de la mano se mueve al revés & \texttt{INVERTIR\_DEDO[i]} & Receptor \\
+Un dedo no llega a abrir o cerrar del todo & Recalibrar (comando \texttt{c}) & Transmisor \\
+Movimientos bruscos o reinicios de la placa & Reducir \texttt{VEL\_MAX\_*} & Receptor \\
+Movimientos lentos & Aumentar \texttt{VEL\_MAX\_*} & Receptor \\
+Servos que zumban en reposo & Aumentar \texttt{DEADBAND\_*} & Receptor \\
+Muñeca no centrada con la mano en reposo & \texttt{TRIM\_PITCH\_DEG}, \texttt{TRIM\_ROLL\_DEG} & Transmisor \\
+Muñeca inestable por vibraciones & Aumentar \texttt{ALPHA\_COMPLEMENTARIO} o DLPF a \SI{21}{\hertz} & Transmisor \\
+Muñeca que tarda en asentarse en el ángulo real & Reducir \texttt{ALPHA\_COMPLEMENTARIO} & Transmisor \\
+Recorrido de la muñeca corto o excesivo & \texttt{PITCH\_MANO\_*}, \texttt{ROLL\_MANO\_MAX}, \texttt{SERVO\_V\_*} & Transmisor \\
+La mano vuelve sola al reposo con el guante encendido & Revisar alcance; \texttt{TIMEOUT\_FAILSAFE\_MS} & Receptor \\
+Telemetría \texttt{NO\_ACK} permanente & \texttt{macReceptor[]} & Transmisor \\
+\bottomrule
+\end{tabularx}
+\caption{Guía de ajuste de parámetros.}
+\label{tab:ajuste}
+\end{table}

@@ -1,0 +1,168 @@
+\documentclass[10pt]{article}
+
+%%%%%%%% PREÁMBULO %%%%%%%%%%%%
+\usepackage[spanish,es-noshorthands,es-tabla,es-nodecimaldot]{babel} % Español: "Índice", "Figura", "Tabla"
+\usepackage{iftex}
+\ifPDFTeX % pdfLaTeX (por defecto en Overleaf)
+  \usepackage[utf8]{inputenc}
+  \usepackage[T1]{fontenc}
+\else % XeLaTeX / LuaLaTeX
+  \usepackage{fontspec}
+\fi
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\graphicspath{{Imagenes/}}
+\usepackage{multirow}
+\usepackage{booktabs} % Reglas horizontales prolijas en tablas
+\usepackage{tabularx}
+\usepackage{subfigure}
+\usepackage{float}
+\usepackage{capt-of}
+\usepackage{sidecap}
+	\sidecaptionvpos{figure}{c}
+\usepackage{caption}
+\usepackage{commath}
+\usepackage{cancel}
+\usepackage{anysize}
+\marginsize{2cm}{2cm}{2cm}{2cm} % Izquierda, derecha, arriba, abajo
+\usepackage{gensymb}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, shapes.geometric, fit, calc}
+\usepackage{appendix}
+\renewcommand{\appendixname}{Apéndices}
+\renewcommand{\appendixtocname}{Apéndices}
+\renewcommand{\appendixpagename}{Apéndices}
+
+% Encabezado y pie de página
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\footnotesize UNS}
+\fancyhead[R]{\footnotesize DIEC}
+\fancyfoot[R]{\footnotesize Reporte}
+\fancyfoot[C]{\thepage}
+\fancyfoot[L]{\footnotesize Ingeniería Electricista y Electrónica}
+\renewcommand{\footrulewidth}{0.4pt}
+
+\usepackage{physics,siunitx}
+\sisetup{output-decimal-marker={,}, per-mode=symbol} % 0,98 en lugar de 0.98; °/s en lugar de ° s^-1
+\usepackage{xcolor}
+
+% Marcas para lo que falta completar o confirmar (se ven en rojo en el PDF)
+\newcommand{\pendiente}[1]{\textcolor{red}{\textbf{[PENDIENTE:} #1\textbf{]}}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Código fuente (C++ / Arduino)
+\usepackage{listings}
+\definecolor{dkgreen}{rgb}{0,0.5,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{fondocodigo}{rgb}{0.97,0.97,0.97}
+\lstset{language=C++,
+   morekeywords={uint8_t,uint16_t,int16_t,uint32_t,size_t,TickType_t,BaseType_t,QueueHandle_t,
+      constrain,map,pdTRUE,pdFALSE},
+   basicstyle=\ttfamily\footnotesize,
+   keywordstyle=\color{blue},
+   commentstyle=\color{dkgreen},
+   stringstyle=\color{red!60!black},
+   numbers=left,
+   numberstyle=\tiny\color{gray},
+   stepnumber=1,
+   numbersep=8pt,
+   backgroundcolor=\color{fondocodigo},
+   frame=single,
+   rulecolor=\color{gray!40},
+   breaklines=true,
+   tabsize=4,
+   showspaces=false,
+   showstringspaces=false,
+   extendedchars=true,
+   literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
+            {Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1
+            {ñ}{{\~n}}1 {Ñ}{{\~N}}1 {°}{{\textdegree}}1 {±}{{$\pm$}}1}
+\renewcommand{\lstlistingname}{Código}
+\renewcommand{\lstlistlistingname}{Índice de códigos}
+
+% Estilos TikZ comunes a los diagramas
+\tikzset{
+  bloque/.style={draw, rounded corners, align=center, fill=blue!5, minimum height=1cm, font=\small},
+  flecha/.style={-{Stealth[length=2.5mm]}, thick},
+}
+
+% hyperref al final del preámbulo
+\usepackage[colorlinks=true,plainpages=true,citecolor=blue,linkcolor=blue,urlcolor=blue]{hyperref}
+
+\title{Movilidad de mano impresa en 3D en base al sensado de los movimientos (Telerobótica)}
+
+%%%%%%%% TERMINA PREÁMBULO %%%%%%%%%%%%
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%% PORTADA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{center}
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
+\begin{minipage}{0.48\textwidth} \begin{flushleft}
+\includegraphics[scale = 0.3]{EmblemaUNS.jpg}
+\end{flushleft}\end{minipage}
+\vspace*{2cm}
+\begin{minipage}{0.48\textwidth} \begin{flushright}
+\includegraphics[scale = 0.9]{DIEC.jpg}
+\end{flushright}\end{minipage}
+\vspace*{2cm}
+\textsc{\huge Universidad Nacional del Sur}\\[1cm]
+\textsc{\LARGE Ingeniería  \\ \vspace{4pt} Electrónica }\\[1.5cm]
+\vspace*{0.5cm}
+\HRule \\[0.4cm]
+{ \huge \bfseries Movilidad de mano impresa en 3D en base al sensado de los movimientos (Telerobótica)}\\[0.4cm]
+\HRule \\[1.5cm]
+\begin{minipage}{0.46\textwidth}
+\begin{flushleft} \large
+\emph{\textbf{Autores:}}\\
+Joaquín Petruf \\
+Sebastián Amoroso
+\end{flushleft}
+\end{minipage}
+\begin{minipage}{0.52\textwidth}
+\vspace{-0.6cm}
+\begin{flushright} \large
+\emph{\textbf{Tutores:}} \\
+Rodrigo Martín Santos  \\
+Gabriel Eggly
+\end{flushright}
+\end{minipage}
+
+\vspace*{1cm}
+
+\textbf{\Large Proyecto Final}\\
+
+\vspace{2cm}
+\begin{center}
+Bahía Blanca, Buenos Aires \\
+{\large \today}
+\end{center}
+\end{center}
+\newpage
+%%%%%%%%%%%%%%%%%%%% FIN PORTADA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\tableofcontents
+\newpage
+
+\input{capitulos/01_motivacion}
+\input{capitulos/02_solucion}
+\input{capitulos/03_arquitectura}
+\input{capitulos/04_transmisor}
+\input{capitulos/05_receptor}
+\input{capitulos/06_evolucion}
+\input{capitulos/07_analisis_temporal}
+\input{capitulos/08_pruebas}
+\input{capitulos/09_conclusiones}
+
+\newpage
+\bibliographystyle{bst/IEEEtran}
+\bibliography{bib/IEEEabrv,bib/IEEEreferencias}
+
+\newpage
+\begin{appendices}
+\input{capitulos/A_ajuste_parametros}
+\end{appendices}
+
+\end{document}
