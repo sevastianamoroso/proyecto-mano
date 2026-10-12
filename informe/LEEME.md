@@ -2,15 +2,25 @@
 
 Proyecto LaTeX del informe, basado en la plantilla MSNIE – DIEC – UNS. Documenta el firmware **v2.3.0**.
 
-## Cómo subirlo a Overleaf
+## Cómo compilarlo (local)
 
-1. Comprimir **el contenido** de esta carpeta (`main.tex`, `capitulos/`, `Imagenes/`, `bib/`, `bst/`) en un `.zip`.
-   La carpeta `referencia/` no hace falta subirla.
-2. En Overleaf: **New Project → Upload Project** y elegir el `.zip`.
-3. Compilador: **pdfLaTeX** (el de defecto). También compila con XeLaTeX.
+El informe tarda ~20 s en compilar, más que el límite del plan gratuito de Overleaf, así que se compila
+localmente con [Tectonic](https://tectonic-typesetting.github.io), instalado en
+`%LOCALAPPDATA%\Programs\tectonic\tectonic.exe`. La primera vez descarga los paquetes de LaTeX que
+necesita (requiere internet); después funciona sin conexión.
 
-Si se edita en Overleaf, conviene volver a descargar el proyecto y copiarlo acá para que el repositorio
-quede actualizado (o editar acá y volver a subir).
+- **VS Code** (recomendado): abrir la carpeta del repositorio, abrir `informe/main.tex` y guardar.
+  La extensión *LaTeX Workshop* compila al guardar con la receta "Tectonic" (configurada en
+  `.vscode/settings.json`) y muestra el PDF en una pestaña. Ctrl+clic en el PDF salta al código.
+- **PowerShell**: `.\informe\compilar.ps1` → genera `informe/main.pdf`.
+
+El PDF y los archivos intermedios están en `.gitignore`.
+
+## Overleaf (opcional)
+
+También compila en Overleaf (pdfLaTeX), pero en el plan gratuito puede superar el tiempo máximo.
+Para subirlo: comprimir `main.tex`, `capitulos/`, `Imagenes/`, `bib/` y `bst/` y usar
+**New Project → Upload Project**.
 
 ## Estructura
 
