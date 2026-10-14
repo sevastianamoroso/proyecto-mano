@@ -153,6 +153,12 @@ del transmisor**: mientras el receptor reinicia, el transmisor muestra `RF:NO_AC
 **Qué debería pasar:** el pin 3V3 marca unos 3,3 V. Según el diagrama, el pin 5V del ESP32 debería
 estar cerca de 4,6 V.
 
+> **Ojo con este punto.** Según su hoja de datos, el regulador de 3,3 V de la placa (AMS1117) necesita
+> en el peor caso hasta 1,3 V más en la entrada, o sea unos 4,6 V; con menos corriente necesita menos.
+> Si el pin 3V3 marca claramente menos de 3,3 V (por ejemplo, 3,1 V), el diodo deja al ESP32 sin margen:
+> anotalo y avisame antes de seguir. Una opción es subir la salida del *buck* a unos 5,2–5,3 V,
+> sin pasar los 6 V que admiten los servos.
+
 ---
 
 ### P6 ★ Picos de corriente y caída de tensión, **con** los componentes nuevos
