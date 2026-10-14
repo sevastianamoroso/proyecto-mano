@@ -44,6 +44,12 @@ const int PIN_I2C_SCL = 22;
 // Frecuencia del lazo de control (50 Hz = 20 ms)
 const TickType_t PERIODO_CONTROL_MS = 20;
 
+// Medición de latencia con osciloscopio (poner en 1 sólo para la prueba).
+// Al inicio de cada ciclo, PIN_LATENCIA toma el bit 0 de la secuencia del paquete que se
+// va a enviar; el Receptor hace lo mismo al procesarlo. El desfase entre flancos = latencia.
+#define MEDIR_LATENCIA 0
+const int PIN_LATENCIA = 23;
+
 // Fusión IMU: filtro complementario (peso del giróscopo, típico 0.96..0.98)
 const float ALPHA_COMPLEMENTARIO = 0.98f;
 // Ajuste fino de montaje del MPU en el guante (°): ángulo leído con la mano en pose neutra
@@ -256,6 +262,10 @@ void setup() {
     Serial.begin(115200);
     delay(500);
     Serial.println("\n[SISTEMA] Iniciando Transmisor de Telerrobótica...");
+#if MEDIR_LATENCIA
+    pinMode(PIN_LATENCIA, OUTPUT);
+    Serial.printf("[LATENCIA] Modo medición activo: señal en GPIO%d.\n", PIN_LATENCIA);
+#endif
 
     // 1. Configuración de ADC
     for (int i = 0; i < TOTAL_DEDOS; i++) {
@@ -345,6 +355,9 @@ void tareaTransmision(void* pvParameters) {
     for (;;) {
         // Ejecución determinista a 50 Hz (20 ms)
         vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(PERIODO_CONTROL_MS));
+#if MEDIR_LATENCIA
+        digitalWrite(PIN_LATENCIA, contadorSecuencia & 1);
+#endif
 
         // -------------------------------------------------------------
         // 1. ADQUISICIÓN IMU (MPU6050) Y FUSIÓN COMPLEMENTARIA

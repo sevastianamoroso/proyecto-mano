@@ -17,6 +17,7 @@
 #include <esp_now.h>
 #include <esp_idf_version.h>
 #include <ESP32Servo.h>
+#include <esp_system.h>
 
 #include "ProtocoloBrazo.h"
 
@@ -41,6 +42,11 @@ const int PINES_SERVOS_DEDOS[TOTAL_DEDOS] = {
 // ==========================================
 // Período de actualización del lazo de actuación (50 Hz = 20 ms)
 const TickType_t PERIODO_CONTROL_MS = 20;
+
+// Medición de latencia con osciloscopio (poner en 1 sólo para la prueba; ver Transmisor).
+// Tras procesar cada paquete y actualizar los servos, PIN_LATENCIA toma el bit 0 de su secuencia.
+#define MEDIR_LATENCIA 0
+const int PIN_LATENCIA = 23;
 
 // Timeout para detección de pérdida de enlace (ms)
 const uint32_t TIMEOUT_FAILSAFE_MS = 250;
@@ -188,6 +194,22 @@ void setup() {
     delay(500);
     Serial.println("\n[SISTEMA] Iniciando Receptor y Controlador Cinemático...");
 
+    // Motivo del último reinicio: permite distinguir un brownout (caída de la alimentación)
+    // de un reinicio normal durante las pruebas de alimentación.
+    esp_reset_reason_t motivo = esp_reset_reason();
+    Serial.printf("[SISTEMA] Motivo del reinicio: %s\n",
+                  motivo == ESP_RST_BROWNOUT ? "BROWNOUT (caida de tension)" :
+                  motivo == ESP_RST_POWERON  ? "encendido" :
+                  motivo == ESP_RST_SW       ? "software" :
+                  motivo == ESP_RST_PANIC    ? "PANIC (error de firmware)" :
+                  motivo == ESP_RST_EXT      ? "boton EN / externo" :
+                  (motivo == ESP_RST_INT_WDT || motivo == ESP_RST_TASK_WDT || motivo == ESP_RST_WDT) ? "WATCHDOG" :
+                  "otro");
+#if MEDIR_LATENCIA
+    pinMode(PIN_LATENCIA, OUTPUT);
+    Serial.printf("[LATENCIA] Modo medición activo: señal en GPIO%d.\n", PIN_LATENCIA);
+#endif
+
     // Inicializar posiciones en Home seguro
     for (int i = 0; i < TOTAL_DEDOS; i++) {
         posActualDedos[i]   = HOME_DEDOS;
@@ -257,7 +279,9 @@ void tareaControlActuadores(void* pvParameters) {
         // de 50 Hz). Sin paquetes, el timeout mantiene el ciclo a 50 Hz para failsafe y trayectoria.
         // ponytail: el slew es por iteración y el Tx manda a 50 Hz; si se sube la tasa del Tx,
         // escalar VEL_MAX_* por el dt real.
+        bool paqueteNuevo = false;
         if (xQueueReceive(colaMensajesBrazo, &paqueteEntrante, pdMS_TO_TICKS(PERIODO_CONTROL_MS)) == pdTRUE) {
+            paqueteNuevo = true;
             marcaTiempoUltimoPaquete = millis();
 
             // Si estábamos desconectados o esperando sync, pasar a operación normal
@@ -328,6 +352,12 @@ void tareaControlActuadores(void* pvParameters) {
                 servoMuniecaRot.write((int)round(posActualMuniecaRot));
             }
         }
+
+#if MEDIR_LATENCIA
+        if (paqueteNuevo) {
+            digitalWrite(PIN_LATENCIA, paqueteEntrante.secuencia & 1);
+        }
+#endif
 
         // 4. GESTIÓN DE DESACOPLE EN FAILSAFE SOSTENIDO
         // Si el sistema está en Failsafe y ya alcanzó la posición Home, tras 2 segundos se desacoplan los servos
