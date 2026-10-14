@@ -14,3 +14,4 @@ informe/**/*.synctex.gz
 informe/**/*.fdb_latexmk
 informe/**/*.fls
 informe/main.pdf
+informe/borradores/*.pdf

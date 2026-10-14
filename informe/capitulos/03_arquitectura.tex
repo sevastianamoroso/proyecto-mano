@@ -36,6 +36,8 @@ Una decisión de diseño atraviesa todo el firmware: \textbf{el transmisor enví
 
 \subsection{Organización del firmware en tiempo real}
 
+\pendiente{Revisar en detalle el diagrama tipo clases del firmware (\texttt{informe/\allowbreak borradores/\allowbreak diagrama\_firmware.tex}) y anexarlo al informe.}
+
 Ambos firmwares están escritos en C++ sobre el núcleo Arduino para ESP32, que a su vez corre sobre el sistema operativo de tiempo real FreeRTOS. El ESP32 tiene dos núcleos: la pila Wi-Fi (y por lo tanto ESP-NOW) se ejecuta por defecto en el núcleo 0, por lo que las tareas de control de este proyecto se fijaron al núcleo 1 con \texttt{xTaskCreatePinnedToCore()}. La tabla~\ref{tab:tareas} resume las tareas de cada nodo.
 
 \begin{table}[H]

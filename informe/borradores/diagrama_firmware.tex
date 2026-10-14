@@ -1,0 +1,290 @@
+% Borrador: estructura del firmware en notación de diagrama de clases (UML).
+% Documento independiente para revisar antes de incorporarlo al informe.
+% Compilar con:  tectonic -X compile diagrama_firmware.tex
+\documentclass[11pt,a4paper]{article}
+\usepackage[spanish,es-noshorthands,es-tabla]{babel}
+\usepackage{fontspec}
+\usepackage[margin=2cm]{geometry}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, shapes.multipart, fit, calc, backgrounds}
+\usepackage{booktabs, tabularx, float, caption}
+\usepackage{xcolor}
+\usepackage{siunitx}
+\usepackage[colorlinks=true, linkcolor=blue]{hyperref}
+
+\definecolor{ctx}{RGB}{214,230,250}   % transmisor
+\definecolor{crx}{RGB}{220,240,214}   % receptor
+\definecolor{cshared}{RGB}{250,236,204}  % compartido
+\definecolor{crtos}{RGB}{236,224,248} % objetos de FreeRTOS
+
+\tikzset{
+  clase/.style={draw, rectangle split, rectangle split parts=3,
+    rectangle split part align={center,left,left},
+    rectangle split part fill={#1,white}, text width=5.3cm,
+    font=\scriptsize, inner sep=3pt, anchor=north},
+  usa/.style={-{Stealth[open,length=2.2mm]}, dashed, thick},
+  asoc/.style={-{Stealth[length=2.2mm]}, thick},
+  comp/.style={{Diamond[length=3mm,width=2mm]}-, thick},
+  etq/.style={font=\scriptsize\itshape, fill=white, inner sep=1pt},
+  paquete/.style={draw, dashed, rounded corners, inner sep=8pt},
+  modulo/.style={draw, fill=#1, minimum width=3.4cm, minimum height=7mm, font=\small, align=center},
+}
+
+% \clase[clase=color, at=...]{id}{estereotipo}{nombre}{atributos}{operaciones}
+\newcommand{\clase}[6][]{%
+  \node[clase,#1] (#2) {{\itshape «#3»}\\\textbf{\small #4}
+    \nodepart{second}\ttfamily #5
+    \nodepart{third}\ttfamily #6};}
+
+\title{Estructura del firmware\\\large Diagrama tipo clases (borrador para el informe)}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section*{Cómo leer los diagramas}
+
+El firmware está escrito en C++ para Arduino, pero \textbf{no define clases propias}: está organizado en variables globales, funciones y tareas de FreeRTOS, repartidos en dos programas (\texttt{Transmisor.ino} y \texttt{Receptor.ino}) que comparten el archivo \texttt{ProtocoloBrazo.h}. Para mostrar su estructura se usa la notación de los diagramas de clases de UML, agrupando las variables y funciones que cumplen una misma responsabilidad en un \emph{módulo}. Cada caja tiene tres partes:
+
+\begin{itemize}
+  \item \textbf{Encabezado:} entre comillas angulares, el tipo de elemento (\emph{estereotipo}): tarea de FreeRTOS, \emph{callback}, estructura, enumeración, etc. Debajo va el nombre del módulo.
+  \item \textbf{Atributos:} las variables y constantes del módulo, con su tipo.
+  \item \textbf{Operaciones:} las funciones que lo forman.
+\end{itemize}
+
+Los nombres de los módulos que no existen como tales en el código (por ejemplo, \emph{EstimadorMuñeca}) son agrupaciones para la explicación; los de variables y funciones son los reales. Las flechas tienen el siguiente significado:
+
+\begin{center}
+\begin{tikzpicture}[every node/.style={font=\small}]
+  \draw[asoc] (0,0) -- (1.5,0) node[right] {asociación: crea, llama o envía a};
+  \draw[usa]  (0,-0.6) -- (1.5,-0.6) node[right] {dependencia: usa o lee};
+  \draw[comp] (0,-1.2) -- (1.5,-1.2) node[right] {composición: es parte de (el rombo va del lado del contenedor)};
+\end{tikzpicture}
+\end{center}
+
+% =====================================================================
+\section*{1. Vista general}
+
+La figura~\ref{fig:fw_general} muestra los dos programas y lo que comparten. El transmisor (guante) mide los sensores, calcula los ángulos de los servos y los envía por ESP-NOW 50 veces por segundo. El receptor (mano) valida cada paquete, lo pasa a su tarea de control por una cola de FreeRTOS y mueve los servos de forma suave. Ambos programas usan la misma definición del paquete, \texttt{MensajeBrazo}, por lo que el formato no puede quedar desincronizado entre ellos.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=5mm]
+  % Transmisor
+  \node[modulo=ctx] (tmain) {Programa principal\\\scriptsize\texttt{setup()}, \texttt{loop()}};
+  \node[modulo=crtos, below=of tmain] (ttask) {TareaTransmision\\\scriptsize 50~Hz};
+  \node[modulo=ctx, below=of ttask] (timu) {EstimadorMuñeca\\\scriptsize MPU6050};
+  \node[modulo=ctx, below=of timu] (tdedos) {LecturaDedos\\\scriptsize potenciómetros};
+  \node[modulo=ctx, below=of tdedos] (tenl) {EnlaceTx\\\scriptsize ESP-NOW};
+  \begin{scope}[on background layer]
+    \node[paquete, fill=ctx!30, fit=(tmain)(tenl), label={[font=\bfseries]above:Transmisor.ino (guante)}] (ptx) {};
+  \end{scope}
+
+  % Receptor
+  \node[modulo=crx, right=6.2cm of tmain] (rmain) {Programa principal\\\scriptsize\texttt{setup()}, \texttt{loop()}};
+  \node[modulo=crx, below=of rmain] (rcb) {OnDataRecv\\\scriptsize \emph{callback} de recepción};
+  \node[modulo=crtos, below=of rcb] (rcola) {colaMensajesBrazo\\\scriptsize cola de 1 elemento};
+  \node[modulo=crtos, below=of rcola] (rtask) {TareaControlActuadores\\\scriptsize máquina de estados};
+  \node[modulo=crx, below=of rtask] (ract) {Actuadores\\\scriptsize 7 servos};
+  \begin{scope}[on background layer]
+    \node[paquete, fill=crx!30, fit=(rmain)(ract), label={[font=\bfseries]above:Receptor.ino (mano)}] (prx) {};
+  \end{scope}
+
+  % Compartido
+  \node[modulo=cshared, below=1.4cm of $(ptx.south)!0.5!(prx.south)$] (msg) {MensajeBrazo\\\scriptsize paquete de 19 bytes};
+  \begin{scope}[on background layer]
+    \node[paquete, fill=cshared!40, fit=(msg), label={[font=\bfseries]below:ProtocoloBrazo.h (compartido)}] {};
+  \end{scope}
+
+  \draw[asoc] (tmain) -- (ttask);
+  \draw[usa] (ttask) -- (timu);
+  \draw[usa] (ttask.west) -- ++(-0.5,0) |- (tdedos.west);
+  \draw[asoc] (ttask.east) -- ++(0.4,0) |- (tenl.east);
+  \draw[asoc, line width=1.4pt] (tenl.east) -- node[etq, above, sloped] {ESP-NOW (radio)} (rcb.west);
+  \draw[asoc] (rcb) -- (rcola);
+  \draw[asoc] (rcola) -- (rtask);
+  \draw[asoc] (rtask) -- (ract);
+  \draw[asoc] (rmain.east) -- ++(0.4,0) |- (rtask.east);
+  \draw[usa] (tenl.south) |- (msg.west);
+  \draw[usa] (rcb.south east) -- ++(0.5,0) |- (msg.east);
+\end{tikzpicture}
+\caption{Vista general del firmware. En violeta, los elementos de FreeRTOS (tareas y cola).}
+\label{fig:fw_general}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+\textbf{Módulo} & \textbf{Programa} & \textbf{Responsabilidad} \\
+\midrule
+Programa principal & Tx & Configura el hardware, la radio y la tarea; en \texttt{loop()} atiende el comando de calibración. \\
+TareaTransmision & Tx & Ciclo de \SI{20}{ms}: lee la IMU y los dedos, calcula los ángulos, arma el paquete y lo envía. \\
+EstimadorMuñeca & Tx & Lectura del MPU6050 y filtro complementario para \emph{pitch} y \emph{roll}. \\
+LecturaDedos & Tx & Lectura de los potenciómetros con sobremuestreo y calibración de dos puntos guardada en memoria no volátil. \\
+EnlaceTx & Tx & Envío por ESP-NOW y registro del resultado del último envío. \\
+MensajeBrazo & ambos & Formato del paquete, cálculo y validación del \emph{checksum}. \\
+OnDataRecv & Rx & Descarta paquetes inválidos y deja el válido en la cola. \\
+TareaControlActuadores & Rx & Máquina de estados, \emph{failsafe}, limitador de velocidad y banda muerta. \\
+Actuadores & Rx & Manejo de los siete servos: acople, desacople e inversión de sentido. \\
+\bottomrule
+\end{tabularx}
+\caption{Responsabilidad de cada módulo.}
+\end{table}
+
+% =====================================================================
+\newpage
+\section*{2. Transmisor}
+
+La tarea \texttt{tareaTransmision} es el centro del transmisor. Se ejecuta cada \SI{20}{ms} en el núcleo~1 y en cada ciclo usa, en este orden, al estimador de la muñeca, a la lectura de los dedos y al enlace. El filtro complementario y la conversión de ángulos de la mano a ángulos de servo están escritos dentro del ciclo de la tarea; en el diagrama se los ubica en \emph{EstimadorMuñeca} porque operan sobre sus variables.
+
+La calibración de los dedos corre en \texttt{loop()}, fuera de la tarea. Para que ambas no lean el ADC al mismo tiempo, la calibración activa la bandera \texttt{calibrando}; mientras está activa, la tarea sigue actualizando el filtro de la muñeca pero no lee los dedos, no transmite y no imprime telemetría.
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}
+  \clase[clase=ctx]{main}{programa principal}{Transmisor.ino}
+    {—}
+    {setup()\\loop() \textrm{: comando} 'c'}
+  \clase[clase=crtos, at={(6.4,0)}]{task}{tarea FreeRTOS · núcleo 1 · prioridad 2}{TareaTransmision}
+    {PERIODO\_CONTROL\_MS = 20\\
+     xLastWakeTime : TickType\_t\\
+     ticksTelemetria : uint32\_t\\
+     paqueteSalida : MensajeBrazo\\
+     contadorSecuencia : uint8\_t}
+    {tareaTransmision()\\
+     \textrm{\itshape ciclo: IMU → filtro → mapeo → dedos}\\
+     \textrm{\itshape → paquete → envío → telemetría (5 Hz)}}
+  \clase[clase=cshared, at={(12.8,0)}]{msg}{struct · ProtocoloBrazo.h · 19 bytes}{MensajeBrazo}
+    {magicHeader : uint16\_t = 0xAA55\\
+     secuencia : uint8\_t\\
+     anguloDedos[5] : uint16\_t\\
+     muniecaVertical : int16\_t\\
+     muniecaRotacional : int16\_t\\
+     checksum : uint16\_t}
+    {calcularChecksumBrazo(msg) : uint16\_t\\
+     validarPaqueteBrazo(msg) : bool}
+
+  \clase[clase=ctx, at={(0,-5.4)}]{imu}{módulo}{EstimadorMuñeca}
+    {mpu : Adafruit\_MPU6050\\
+     anguloPitch, anguloRoll : float\\
+     gyroBiasX, gyroBiasY : float\\
+     tiempoAnteriorMicros : uint32\_t\\
+     ALPHA\_COMPLEMENTARIO = 0.98\\
+     TRIM\_PITCH\_DEG, TRIM\_ROLL\_DEG\\
+     PITCH\_MANO\_*, SERVO\_V\_*, ROLL\_MANO\_MAX}
+    {rutinaRecuperacionI2C(sda, scl)\\
+     calibrarIMU()\\
+     pitchAcc(a) : float\\
+     rollAcc(a) : float}
+  \clase[clase=ctx, at={(6.4,-5.4)}]{dedos}{módulo}{LecturaDedos}
+    {PINES\_DEDOS[5] : int\\
+     calMinADC[5], calMaxADC[5] : uint16\_t\\
+     memoriaNVS : Preferences\\
+     calibrando : volatile bool}
+    {leerADCSobremuestreado(pin, muestras)\\
+     ejecutarCalibracionInteractiva()\\
+     cargarCalibracionNVS()\\
+     guardarCalibracionNVS()}
+  \clase[clase=ctx, at={(12.8,-5.4)}]{enl}{módulo · ESP-NOW}{EnlaceTx}
+    {macReceptor[6] : uint8\_t\\
+     infoReceptor : esp\_now\_peer\_info\_t\\
+     ultimoEnvioExitoso : volatile bool}
+    {OnDataSent(info, status) \textrm{«callback»}\\
+     esp\_now\_send(...) \textrm{(desde la tarea)}}
+
+  \draw[asoc] (main.east |- task.text split) -- node[etq, above] {crea} (task.west |- task.text split);
+  \draw[asoc] (task.east |- msg.text split) -- node[etq, above] {arma} (msg.west |- msg.text split);
+  \coordinate (bus) at (6.4,-4.3);
+  \draw[usa] (task.south) -- (bus) -| node[etq, pos=0.25, above] {usa} (imu.north);
+  \draw[usa] (bus) -- (dedos.north);
+  \draw[usa] (bus) -| ([xshift=-0.6cm]enl.north);
+  \draw[asoc] ([xshift=1.5cm]main.south) -- (1.5,-4.8) -| node[etq, pos=0.25, below] {comando 'c'} ([xshift=-1.2cm]dedos.north);
+  \draw[usa] ([xshift=1.6cm]enl.north) -- node[etq, right] {envía} ([xshift=1.6cm]msg.south);
+\end{tikzpicture}}
+\caption{Estructura del transmisor.}
+\label{fig:fw_tx}
+\end{figure}
+
+% =====================================================================
+\section*{3. Receptor}
+
+En el receptor, el \emph{callback} \texttt{OnDataRecv} corre en el núcleo~0, dentro de la pila de Wi-Fi. Sólo verifica el tamaño y el \emph{checksum} del paquete y lo copia en \texttt{colaMensajesBrazo}, una cola de un único elemento que se sobrescribe: si llegan dos paquetes antes de que la tarea los procese, se conserva el más reciente. La tarea \texttt{tareaControlActuadores}, en el núcleo~1, espera en esa cola con un tiempo máximo de \SI{20}{ms}; así despierta en cuanto llega un paquete y, si no llega ninguno, igual sigue ejecutándose para supervisar el \emph{failsafe} y completar la trayectoria hacia la posición de reposo. Como sólo la tarea modifica las posiciones de los servos, no hay accesos simultáneos desde el \emph{callback}.
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}
+  \clase[clase=crx]{cb}{callback ESP-NOW · núcleo 0}{OnDataRecv}
+    {—}
+    {OnDataRecv(info, datos, len)\\
+     \textrm{\itshape 1. descarta si len $\neq$ 19}\\
+     \textrm{\itshape 2. validarPaqueteBrazo()}\\
+     \textrm{\itshape 3. xQueueOverwriteFromISR()}}
+  \clase[clase=crtos, at={(6.4,0)}]{cola}{cola FreeRTOS}{colaMensajesBrazo}
+    {longitud = 1\\
+     elemento : MensajeBrazo\\
+     \textrm{sobrescribe el anterior}}
+    {xQueueOverwriteFromISR() \textrm{(escribe)}\\
+     xQueueReceive() \textrm{(lee)}}
+  \clase[clase=crtos, at={(12.8,0)}]{task}{tarea FreeRTOS · núcleo 1 · prioridad 3}{TareaControlActuadores}
+    {estadoActual : EstadoSistema\\
+     marcaTiempoUltimoPaquete : uint32\_t\\
+     tiempoEnHomeMs : uint32\_t\\
+     ticksTelemetria : uint32\_t}
+    {tareaControlActuadores()\\
+     \textrm{\itshape 1. esperar paquete (máx. 20 ms)}\\
+     \textrm{\itshape 2. supervisar failsafe (250 ms)}\\
+     \textrm{\itshape 3. trayectoria: velocidad + banda muerta}\\
+     \textrm{\itshape 4. desacople en reposo (2 s)}\\
+     \textrm{\itshape 5. telemetría (5 Hz)}}
+
+  \clase[clase=crx, at={(0,-5.6)}]{main}{programa principal}{Receptor.ino}
+    {—}
+    {setup()\\
+     \textrm{\itshape posición Home, temporizadores PWM,}\\
+     \textrm{\itshape cola, ESP-NOW y tarea}\\
+     loop() \textrm{\itshape (vacío)}}
+  \clase[clase=cshared, at={(6.4,-5.6)}]{est}{enumeración}{EstadoSistema}
+    {ESTADO\_ESPERANDO\_SYNC\\
+     ESTADO\_OPERACION\_NORMAL\\
+     ESTADO\_FAILSAFE\_SIN\_SENAL}
+    {—}
+  \clase[clase=crx, at={(12.8,-5.6)}]{act}{módulo}{Actuadores}
+    {servoDedos[5] : Servo \textrm{(SG90)}\\
+     servoMuniecaVert, servoMuniecaRot : Servo\\
+     posActualDedos[5], posObjetivoDedos[5]\\
+     posActualMunieca*, posObjetivoMunieca*\\
+     servosAcoplados : bool}
+    {acoplarServos()\\
+     desacoplarServos()\\
+     anguloServoDedo(i, pos) : int}
+  \clase[clase=cshared, at={(6.4,-8.9)}]{par}{constantes}{ParámetrosControl}
+    {TIMEOUT\_FAILSAFE\_MS = 250\\
+     DEADBAND\_DEDOS = 1.0, DEADBAND\_MUNIECA = 1.2\\
+     VEL\_MAX\_DEDOS = 8.0 \textrm{°/ciclo}\\
+     VEL\_MAX\_MUNIECA\_VERT = 4.0, \_ROT = 5.0\\
+     HOME\_*, LIM\_*\\
+     INVERTIR\_DEDO[5] : bool}
+    {—}
+
+  \draw[asoc] (cb.east |- cola.text split) -- node[etq, above] {escribe} (cola.west |- cola.text split);
+  \draw[asoc] (cola.east |- cola.text split) -- node[etq, above] {lee} (task.west |- cola.text split);
+  \draw[comp] (task.south west) -- node[etq, above, sloped] {estado} (est.north east);
+  \draw[asoc] ([xshift=1cm]task.south) -- node[etq, right] {mueve} ([xshift=1cm]act.north);
+  \draw[usa] (act.south) |- node[etq, pos=0.75, above] {usa} (par.east);
+  \draw[asoc] (main.north) -- node[etq, left] {registra} (cb.south);
+\end{tikzpicture}}
+\caption{Estructura del receptor.}
+\label{fig:fw_rx}
+\end{figure}
+
+\section*{Notas}
+\begin{itemize}
+  \item \textbf{Archivo sin uso:} \texttt{Transmisor/KalmanFilter.h} quedó de la versión 1.0.0 y ya no se incluye en el firmware. Puede borrarse o mencionarse sólo en la sección de evolución.
+  \item \textbf{Bibliotecas externas:} \texttt{Adafruit\_MPU6050} (IMU), \texttt{Preferences} (memoria no volátil), \texttt{ESP32Servo} (PWM de los servos), \texttt{esp\_now} y \texttt{WiFi} (radio) y FreeRTOS (tareas y colas), incluida en el núcleo de Arduino para ESP32. No se dibujan para no recargar los diagramas.
+\end{itemize}
+
+\end{document}

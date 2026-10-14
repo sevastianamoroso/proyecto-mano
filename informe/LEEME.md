@@ -37,6 +37,7 @@ Para subirlo: comprimir `main.tex`, `capitulos/`, `Imagenes/`, `bib/` y `bst/` y
 | `capitulos/08_pruebas.tex` | Pruebas (todavía con las mediciones del firmware preliminar) |
 | `capitulos/09_conclusiones.tex` | Conclusiones (a redactar) y trabajo futuro |
 | `capitulos/A_ajuste_parametros.tex` | Apéndice: guía de ajuste de parámetros |
+| `borradores/diagrama_firmware.tex` | Borrador: diagrama tipo clases del firmware (pendiente de revisar y anexar) |
 | `bib/IEEEreferencias.bib` | Referencias (estilo IEEE) |
 | `referencia/` | `main.tex` original y PDF del informe preliminar, sólo como referencia |
 
