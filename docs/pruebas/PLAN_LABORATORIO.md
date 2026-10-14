@@ -199,7 +199,13 @@ Desde acá podés conectar el receptor por USB para ver su monitor serie.
 1. Abrí el monitor serie del receptor y apretá el botón **EN** del ESP32.
 2. Guardá el texto del arranque: `P8_serie_arranque_rx.txt`.
 
-**Qué debería pasar:** aparece `[SISTEMA] Motivo del reinicio: boton EN / externo` y después la mano se sincroniza con el guante.
+**Qué debería pasar:** aparece `[SISTEMA] Motivo del reinicio: encendido, boton EN o reinicio por USB` y después
+la mano se sincroniza con el guante. En el ESP32 el botón EN, el corte de alimentación y el reinicio que provoca
+el USB al abrir o cerrar el puerto serie dan el mismo motivo; lo que sí se distingue es `BROWNOUT`.
+
+> **Abrir o cerrar el puerto serie reinicia la placa.** El adaptador USB de la placa usa las líneas DTR/RTS
+> para manejar el pin EN. Si el monitor serie del **transmisor** se cierra o se reconecta durante una prueba,
+> el transmisor se reinicia y la mano entra en *failsafe* (vuelve a reposo). No es una falla de alimentación.
 
 ---
 

@@ -199,10 +199,9 @@ void setup() {
     esp_reset_reason_t motivo = esp_reset_reason();
     Serial.printf("[SISTEMA] Motivo del reinicio: %s\n",
                   motivo == ESP_RST_BROWNOUT ? "BROWNOUT (caida de tension)" :
-                  motivo == ESP_RST_POWERON  ? "encendido" :
+                  motivo == ESP_RST_POWERON  ? "encendido, boton EN o reinicio por USB" :
                   motivo == ESP_RST_SW       ? "software" :
                   motivo == ESP_RST_PANIC    ? "PANIC (error de firmware)" :
-                  motivo == ESP_RST_EXT      ? "boton EN / externo" :
                   (motivo == ESP_RST_INT_WDT || motivo == ESP_RST_TASK_WDT || motivo == ESP_RST_WDT) ? "WATCHDOG" :
                   "otro");
 #if MEDIR_LATENCIA
