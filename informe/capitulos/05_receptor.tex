@@ -109,15 +109,26 @@ El GPIO 12 es un pin de configuración de arranque (\textit{strapping}) del ESP3
 
 \subsubsection{Consumo}
 
-Los valores eléctricos de funcionamiento de los componentes son:
+La tabla~\ref{tab:consumos} resume los valores eléctricos de los componentes del receptor según sus fabricantes.
 
-\begin{itemize}
-    \item SG90: entre \SI{5}{\volt} y \SI{6}{\volt}; de \SI{100}{\milli\ampere} a \SI{250}{\milli\ampere} sin carga y hasta \SI{500}{\milli\ampere} bloqueado.
-    \item MG946R: entre \SI{4.8}{\volt} y \SI{6}{\volt}; \SI{170}{\milli\ampere} sin carga y hasta \SI{1.2}{\ampere} bloqueado.
-    \item ESP32: \SI{5}{\volt} y entre \SI{300}{\milli\ampere} y \SI{500}{\milli\ampere} con Wi-Fi activo.
-\end{itemize}
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{l X X}
+\toprule
+\textbf{Componente} & \textbf{Valores} & \textbf{Fuente} \\
+\midrule
+SG90 (dedos) & \SI{4.8}{\volt}; \SI{1.8}{\kilo\gram\centi\meter} de torque de bloqueo. El fabricante no publica corrientes. Un distribuidor informa \SIrange{100}{250}{\milli\ampere} en movimiento y \SI{360}{\milli\ampere} bloqueado (medido por el distribuidor). & \cite{sg90_datasheet}, \cite{sg90_protosupplies} \\
+MG946R (muñeca) & \SIrange{4.8}{6.6}{\volt}; \SI{10}{\milli\ampere} en reposo, \SI{170}{\milli\ampere} en operación sin carga y \SI{1.2}{\ampere} bloqueado; \SI{10.5}{\kilo\gram\centi\meter} a \SI{4.8}{\volt}. & \cite{mg946r_datasheet} \\
+ESP32 & Alimentación del chip de \SIrange{2.3}{3.6}{\volt} (típica \SI{3.3}{\volt}); la fuente debe poder entregar al menos \SI{500}{\milli\ampere}. Consumo típico de la radio: \SI{240}{\milli\ampere} transmitiendo (802.11b, \SI{19.5}{dBm}) y \SIrange{95}{100}{\milli\ampere} recibiendo. & \cite{esp32_datasheet} (sec.~2.5.3, tablas 5-2 y 5-4) \\
+AMS1117-3.3 (regulador de la placa del ESP32) & Caída mínima entre entrada y salida (\textit{dropout}) de \SI{1.1}{\volt} típica y \SI{1.3}{\volt} máxima a \SI{0.8}{\ampere}; menor con menos corriente. & \cite{ams1117_datasheet} \\
+1N5822 (Schottky) & \SI{40}{\volt}; \SI{3}{\ampere} de corriente media; tensión directa máxima de \SI{0.39}{\volt} a \SI{1}{\ampere} y \SI{0.525}{\volt} a \SI{3}{\ampere}. & \cite{n5822_datasheet} \\
+\bottomrule
+\end{tabularx}
+\caption{Valores eléctricos de los componentes del receptor.}
+\label{tab:consumos}
+\end{table}
 
-\pendiente{Citar las hojas de datos de donde salen estos valores.}
+Para el SG90, la corriente de bloqueo varía entre fuentes no oficiales (de \SI{360}{\milli\ampere} a \SI{750}{\milli\ampere}), por lo que el valor medido en el propio montaje es más confiable que el de cualquier hoja de datos. Por otro lado, el valor mínimo de \SI{500}{\milli\ampere} del ESP32 cubre los picos de la radio (hasta \SI{379}{\milli\ampere} en transmisión continua según la hoja del módulo \cite{esp32_wroom_datasheet}). Por último, si el ESP32 se alimenta a través de un diodo, la tensión que recibe el regulador AMS1117 se acerca a su mínimo de funcionamiento: con \SI{5}{\volt} en el riel, menos la caída del diodo, quedan unos \SI{4.6}{\volt}, mientras que el regulador puede requerir hasta $\SI{3.3}{\volt} + \SI{1.3}{\volt} = \SI{4.6}{\volt}$ en el peor caso.
 
 Dado que los SG90 de los dedos no llegan al bloqueo, se los considera con consumo normal. En cambio, debe tenerse en cuenta la corriente de bloqueo de los MG946R, sobre todo la del servo de desplazamiento vertical, que es el que carga más peso. Considerando todo lo anterior, la fuente debe poder entregar al menos unos \SI{3}{\ampere}.
 
