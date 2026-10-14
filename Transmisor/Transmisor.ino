@@ -50,6 +50,11 @@ const TickType_t PERIODO_CONTROL_MS = 20;
 #define MEDIR_LATENCIA 0
 const int PIN_LATENCIA = 23;
 
+// Telemetría para MATLAB (poner en 1 sólo para registrar datos): reemplaza la telemetría de 5 Hz
+// por una línea CSV por paquete enviado (50 Hz), que el Receptor repite con la misma secuencia:
+//   T,millis,secuencia,dedo1..dedo5,muniecaVertical,muniecaRotacional
+#define TELEMETRIA_MATLAB 0
+
 // Fusión IMU: filtro complementario (peso del giróscopo, típico 0.96..0.98)
 const float ALPHA_COMPLEMENTARIO = 0.98f;
 // Ajuste fino de montaje del MPU en el guante (°): ángulo leído con la mano en pose neutra
@@ -437,6 +442,15 @@ void tareaTransmision(void* pvParameters) {
         // -------------------------------------------------------------
         // 5. TELEMETRÍA SERIAL NO BLOQUEANTE (5 Hz = cada 10 ciclos)
         // -------------------------------------------------------------
+#if TELEMETRIA_MATLAB
+        Serial.printf("T,%lu,%u,%u,%u,%u,%u,%u,%d,%d\n",
+                      (unsigned long)millis(),
+                      paqueteSalida.secuencia,
+                      paqueteSalida.anguloDedos[0], paqueteSalida.anguloDedos[1],
+                      paqueteSalida.anguloDedos[2], paqueteSalida.anguloDedos[3],
+                      paqueteSalida.anguloDedos[4],
+                      paqueteSalida.muniecaVertical, paqueteSalida.muniecaRotacional);
+#else
         if (++ticksTelemetria >= 10) {
             ticksTelemetria = 0;
             Serial.printf("[TX #%u] Dedos:[%u, %u, %u, %u, %u] | Mñc:[V:%d, R:%d] | RF:%s\n",
@@ -450,6 +464,7 @@ void tareaTransmision(void* pvParameters) {
                           paqueteSalida.muniecaRotacional,
                           ultimoEnvioExitoso ? "OK" : "NO_ACK");
         }
+#endif
     }
 }
 

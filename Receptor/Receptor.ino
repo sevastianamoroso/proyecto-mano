@@ -48,6 +48,12 @@ const TickType_t PERIODO_CONTROL_MS = 20;
 #define MEDIR_LATENCIA 0
 const int PIN_LATENCIA = 23;
 
+// Telemetría para MATLAB (poner en 1 sólo para registrar datos; ver Transmisor). Una línea CSV
+// por ciclo de control (50 Hz) con la secuencia del último paquete y la posición actual (tras el slew):
+//   R,millis,secuencia,nuevo(1 = llegó paquete en este ciclo),estado(0 sync,1 normal,2 failsafe),
+//   dedo1..dedo5,muniecaVertical,muniecaRotacional
+#define TELEMETRIA_MATLAB 0
+
 // Timeout para detección de pérdida de enlace (ms)
 const uint32_t TIMEOUT_FAILSAFE_MS = 250;
 
@@ -367,6 +373,14 @@ void tareaControlActuadores(void* pvParameters) {
         }
 
         // 5. TELEMETRÍA SERIAL NO BLOQUEANTE (5 Hz)
+#if TELEMETRIA_MATLAB
+        Serial.printf("R,%lu,%u,%d,%d,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f\n",
+                      (unsigned long)millis(),
+                      paqueteEntrante.secuencia, paqueteNuevo ? 1 : 0, (int)estadoActual,
+                      posActualDedos[0], posActualDedos[1], posActualDedos[2],
+                      posActualDedos[3], posActualDedos[4],
+                      posActualMuniecaVert, posActualMuniecaRot);
+#else
         if (++ticksTelemetria >= 10) {
             ticksTelemetria = 0;
             const char* strEstado = (estadoActual == ESTADO_OPERACION_NORMAL) ? "OK" :
@@ -377,6 +391,7 @@ void tareaControlActuadores(void* pvParameters) {
                           posActualDedos[3], posActualDedos[4],
                           posActualMuniecaVert, posActualMuniecaRot);
         }
+#endif
     }
 }
 

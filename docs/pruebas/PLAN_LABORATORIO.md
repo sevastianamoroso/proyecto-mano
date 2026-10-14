@@ -335,8 +335,33 @@ paquete, en CH2 falta un flanco: descartá esa medición.
 
 ---
 
+### P16 ☆ Respuesta del sistema con MATLAB (figuras para la sección 8)
+**Para qué:** graficar la orden del guante y la posición de la mano en el mismo eje de tiempo.
+
+1. En los **dos** firmwares cambiá `#define TELEMETRIA_MATLAB 0` por `1` y flasheá. La telemetría de
+   texto de 5 Hz se reemplaza por líneas CSV a 50 Hz (`T,...` en el Tx y `R,...` en el Rx).
+2. Abrí `docs/pruebas/matlab/telemetria_tx_rx.m` y ajustá los puertos COM. El monitor serie de Arduino tiene
+   que estar **cerrado**, porque dos programas no pueden abrir el mismo puerto.
+3. Corré el script y, durante los 20 s de registro, hacé movimientos de muñeca y dedos (lentos y bruscos).
+4. Guardá:
+   - los `.txt` que genera el script, en la carpeta de evidencia;
+   - el gráfico (`P16_matlab_respuesta.png`);
+   - lo que imprime en la consola: paquetes procesados y no procesados.
+5. **Al terminar, volvé `TELEMETRIA_MATLAB` a `0`** y reflasheá.
+
+**Cómo interpretarlo:** las dos curvas quedan en el reloj del receptor y alineadas por número de paquete,
+así que el corrimiento entre ellas es el **retraso del suavizado** (limitador de velocidad), no la latencia
+de radio (esa es la P11).
+
+| Resultado | |
+|---|---|
+| Paquetes no procesados (%) | |
+| Retraso visible en un movimiento brusco de muñeca (ms, aprox.) | |
+
+---
+
 ## Al terminar la sesión
-- [ ] `MEDIR_LATENCIA` quedó en `0` en los dos firmwares.
+- [ ] `MEDIR_LATENCIA` y `TELEMETRIA_MATLAB` quedaron en `0` en los dos firmwares.
 - [ ] Todos los archivos están en `docs/pruebas/evidencia/2026-10-14/`.
 - [ ] Este plan tiene los cuadros de resultado completos.
 - [ ] Commit y push (o pasame la carpeta y lo hago yo).
@@ -348,5 +373,6 @@ paquete, en CH2 falta un flanco: descartá esa medición.
 | P9 | 4: pendiente de la pausa durante la calibración |
 | P10 | 5.3: máquina de estados y failsafe (validación) |
 | P11, P12 | 7: análisis temporal, latencia medida |
+| P16 | 8: respuesta del sistema (figuras) |
 | P13, P14 | 8: pruebas con la versión actual (reemplazo de figuras) |
 | Todas | 9: conclusiones |
