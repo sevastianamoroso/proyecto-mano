@@ -67,7 +67,14 @@ Como el software sólo limita los dedos al rango de \SIrange{25}{90}{\degree}, e
 \subsection{Conexionado y alimentación}
 \label{sec:alimentacion}
 
-El uso de la placa base del ESP32 (figura~\ref{f:Extra}) simplificó el conexionado, ya que ofrece tiras de pines con señal, alimentación y masa en la disposición que requieren los servos. La placa puede alimentarse por micro-USB, USB-C o por un conector de tipo \textit{plug}; este último es el necesario para que todo el sistema funcione, porque admite entre \SI{6.5}{\volt} y \SI{16}{\volt}.
+El uso de la placa base del ESP32 (figura~\ref{f:Extra}) simplificó el conexionado, ya que ofrece tiras de pines con señal, alimentación y masa en la disposición que requieren los servos. La alimentación se dividió en dos:
+
+\begin{itemize}
+    \item \textbf{Servos:} una fuente externa de \SI{12}{\volt} y \SI{4}{\ampere} alimenta un regulador conmutado reductor (\textit{buck}) basado en el MP1584, cuya salida de \SI{5}{\volt} se conecta a los pines de alimentación de la placa base, de donde la toman los siete servos.
+    \item \textbf{ESP32:} se alimenta por su conector micro-USB desde la computadora, que se usa también para la telemetría.
+\end{itemize}
+
+Las masas de ambas alimentaciones están unidas, ya que la señal PWM de cada servo se mide respecto del GND del ESP32. \pendiente{Verificar con el multímetro si los pines de \SI{5}{\volt} de la placa base están unidos al pin 5V del ESP32. Si lo están, el ESP32 queda conectado también a la salida del buck, y hay que confirmar que su placa tenga un diodo entre el USB y el pin 5V; de lo contrario, el buck podría inyectar corriente al puerto USB de la computadora. Corregir esta descripción según el resultado.}
 
 \begin{figure}[H]
  \centering
@@ -120,24 +127,25 @@ La tabla~\ref{tab:consumos} resume los valores eléctricos de los componentes de
 SG90 (dedos) & \SI{4.8}{\volt}; \SI{1.8}{\kilo\gram\centi\meter} de torque de bloqueo. El fabricante no publica corrientes. Un distribuidor informa \SIrange{100}{250}{\milli\ampere} en movimiento y \SI{360}{\milli\ampere} bloqueado (medido por el distribuidor). & \cite{sg90_datasheet}, \cite{sg90_protosupplies} \\
 MG946R (muñeca) & \SIrange{4.8}{6.6}{\volt}; \SI{10}{\milli\ampere} en reposo, \SI{170}{\milli\ampere} en operación sin carga y \SI{1.2}{\ampere} bloqueado; \SI{10.5}{\kilo\gram\centi\meter} a \SI{4.8}{\volt}. & \cite{mg946r_datasheet} \\
 ESP32 & Alimentación del chip de \SIrange{2.3}{3.6}{\volt} (típica \SI{3.3}{\volt}); la fuente debe poder entregar al menos \SI{500}{\milli\ampere}. Consumo típico de la radio: \SI{240}{\milli\ampere} transmitiendo (802.11b, \SI{19.5}{dBm}) y \SIrange{95}{100}{\milli\ampere} recibiendo. & \cite{esp32_datasheet} (sec.~2.5.3, tablas 5-2 y 5-4) \\
-AMS1117-3.3 (regulador de la placa del ESP32) & Caída mínima entre entrada y salida (\textit{dropout}) de \SI{1.1}{\volt} típica y \SI{1.3}{\volt} máxima a \SI{0.8}{\ampere}; menor con menos corriente. & \cite{ams1117_datasheet} \\
-1N5822 (Schottky) & \SI{40}{\volt}; \SI{3}{\ampere} de corriente media; tensión directa máxima de \SI{0.39}{\volt} a \SI{1}{\ampere} y \SI{0.525}{\volt} a \SI{3}{\ampere}. & \cite{n5822_datasheet} \\
+MP1584 (regulador \textit{buck}) & Entrada de \SIrange{4.5}{28}{\volt}; \SI{3}{\ampere} de salida; frecuencia de conmutación programable de \SI{100}{\kilo\hertz} a \SI{1.5}{\mega\hertz}; límite de corriente del interruptor de \SI{4.0}{\ampere} mínimo (\SI{4.7}{\ampere} típico); apagado térmico a \SI{150}{\celsius}. & \cite{mp1584_datasheet} \\
 \bottomrule
 \end{tabularx}
 \caption{Valores eléctricos de los componentes del receptor.}
 \label{tab:consumos}
 \end{table}
 
-Para el SG90, la corriente de bloqueo varía entre fuentes no oficiales (de \SI{360}{\milli\ampere} a \SI{750}{\milli\ampere}), por lo que el valor medido en el propio montaje es más confiable que el de cualquier hoja de datos. Por otro lado, el valor mínimo de \SI{500}{\milli\ampere} del ESP32 cubre los picos de la radio (hasta \SI{379}{\milli\ampere} en transmisión continua según la hoja del módulo \cite{esp32_wroom_datasheet}). Por último, si el ESP32 se alimenta a través de un diodo, la tensión que recibe el regulador AMS1117 se acerca a su mínimo de funcionamiento: con \SI{5}{\volt} en el riel, menos la caída del diodo, quedan unos \SI{4.6}{\volt}, mientras que el regulador puede requerir hasta $\SI{3.3}{\volt} + \SI{1.3}{\volt} = \SI{4.6}{\volt}$ en el peor caso.
+Para el SG90, la corriente de bloqueo varía entre fuentes no oficiales (de \SI{360}{\milli\ampere} a \SI{750}{\milli\ampere}), por lo que el valor medido en el propio montaje es más confiable que el de cualquier hoja de datos. Por otro lado, el valor mínimo de \SI{500}{\milli\ampere} del ESP32 cubre los picos de la radio (hasta \SI{379}{\milli\ampere} en transmisión continua según la hoja del módulo \cite{esp32_wroom_datasheet}).
 
-Dado que los SG90 de los dedos no llegan al bloqueo, se los considera con consumo normal. En cambio, debe tenerse en cuenta la corriente de bloqueo de los MG946R, sobre todo la del servo de desplazamiento vertical, que es el que carga más peso. Considerando todo lo anterior, la fuente debe poder entregar al menos unos \SI{3}{\ampere}.
+Dado que los SG90 de los dedos no llegan al bloqueo, se los considera con consumo normal. En cambio, debe tenerse en cuenta la corriente de bloqueo de los MG946R, sobre todo la del servo de desplazamiento vertical, que es el que carga más peso. Considerando todo lo anterior, la fuente de los servos debe poder entregar al menos unos \SI{3}{\ampere}, que es la corriente nominal del MP1584. Con la corriente de bloqueo de los dos MG946R (\SI{2.4}{\ampere}) más el consumo de los cinco SG90 en movimiento, un pico simultáneo puede acercarse a ese valor o superarlo; por eso es importante limitar los picos.
 
-Además del consumo medio, deben considerarse los picos de arranque: cuando varios servos arrancan a la vez, la corriente puede superar por algunos milisegundos la capacidad de la fuente. Si la tensión de \SI{5}{\volt} cae lo suficiente, el regulador de \SI{3.3}{\volt} del ESP32 pierde regulación y el circuito de protección del microcontrolador provoca un reinicio por baja tensión (\textit{brownout}). Para mitigarlo se combinan dos medidas:
+Además del consumo medio, deben considerarse los picos de arranque: cuando varios servos arrancan a la vez, la corriente puede superar por algunos milisegundos la capacidad de la fuente. Si el ESP32 tomara su alimentación de esa misma línea de \SI{5}{\volt} y la tensión cayera lo suficiente, su regulador de \SI{3.3}{\volt} perdería regulación y el circuito de protección del microcontrolador provocaría un reinicio por baja tensión (\textit{brownout}); alimentarlo por USB separa su alimentación de la de los servos. Para limitar los picos se combinan dos medidas:
 
 \begin{itemize}
     \item \textbf{En firmware}, el limitador de velocidad del receptor (sección~\ref{sec:slew}) impide que los servos reciban escalones grandes de posición, lo que reduce la aceleración pedida a los motores y, por lo tanto, los picos de corriente.
-    \item \textbf{En hardware}, \pendiente{indicar qué se implementó: por ejemplo, un capacitor electrolítico de baja ESR (del orden de \SI{2200}{\micro\farad}) sobre la alimentación de los servos, masa en estrella, regulador conmutado de \SI{5}{\volt}/\SI{3}{\ampere}. Si se midió el consumo, incluir los valores medidos.}
+    \item \textbf{En hardware}, un capacitor electrolítico de \SI{470}{\micro\farad} / \SI{35}{\volt} en paralelo con uno cerámico de \SI{100}{\nano\farad} sobre la línea de \SI{5}{\volt} de los servos, junto a los pines de la placa base. El electrolítico entrega la corriente de los picos de corta duración, que el regulador no alcanza a seguir, y el cerámico filtra el ruido de alta frecuencia que generan los motores y la conmutación del regulador.
 \end{itemize}
+
+\pendiente{Incluir el consumo medido (medio y picos) y la caída de tensión en la línea de \SI{5}{\volt} durante los picos, según las pruebas de laboratorio.}
 
 \subsection{Firmware del receptor}
 
