@@ -66,7 +66,16 @@ MPU6050 SCL            & 22 & Bus I\textsuperscript{2}C a \SI{400}{\kilo\hertz} 
 
 Todos los potenciómetros se conectan a pines del ADC1. El ESP32 tiene dos conversores, pero el ADC2 no puede utilizarse mientras la radio Wi-Fi está activa \cite{esp32_adc}, y ESP-NOW requiere la radio encendida.
 
-\pendiente{Exportar \texttt{Transmisor/Conexionado\_Transmisor.drawio} a PDF o PNG (en draw.io: Archivo $\rightarrow$ Exportar como), subirlo a \texttt{Imagenes/} e incluirlo aquí. Indicar cómo se alimenta el guante.}
+La figura~\ref{fig:conexionado_tx} muestra el conexionado completo del guante. Los cinco potenciómetros, de \SI{10}{\kilo\ohm} lineales, se conectan entre \SI{3.3}{\volt} y GND, de modo que la tensión de cada cursor nunca supera el rango de entrada del ADC. El módulo MPU6050 (GY-521) se alimenta del pin de \SI{5}{\volt} del ESP32, ya que incluye su propio regulador de \SI{3.3}{\volt}.
+
+El guante se alimenta por el conector USB del ESP32 desde la computadora, la misma conexión que se usa para la calibración y la telemetría; el regulador de la placa genera los \SI{3.3}{\volt}. Un \textit{powerbank} de \SI{5}{\volt} queda como alternativa si se necesitara independizarlo de la computadora.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{Conexionado_Transmisor_Diagrama.png}
+    \caption{Diagrama de conexionado del transmisor. El filtro RC de la derecha es una mejora posible que no se implementó.}
+    \label{fig:conexionado_tx}
+\end{figure}
 
 \subsection{Fundamentos de la unidad de medición inercial}
 
