@@ -3,7 +3,7 @@
 
 \subsection{Diseño mecánico del guante}
 
-El guante se diseñó en Solid Edge (ver sección~\ref{sec:disenio_receptor}) y se imprimió en 3D. La figura~\ref{fig:guante} muestra el conjunto. Sobre el dorso de la mano se apoya una base que aloja los cinco potenciómetros; cada dedo del operador se vincula a su potenciómetro a través de anillos (dedales) que abrazan las falanges y se articulan entre sí. Sobre la muñeca se ubica el soporte del ESP32.
+El guante se diseñó en Solid Edge (ver sección~\ref{sec:disenio_receptor}) y se imprimió en 3D. La figura~\ref{fig:guante} muestra el conjunto. Sobre el dorso de la mano se apoya una base que aloja los cinco potenciómetros; cada dedo del operador se vincula a su potenciómetro mediante una tanza que recorre el dorso del dedo, guiada por dedales colocados en las falanges. Sobre la muñeca se ubica el soporte del ESP32.
 
 \begin{figure}[H]
  \centering
@@ -17,9 +17,9 @@ El guante se diseñó en Solid Edge (ver sección~\ref{sec:disenio_receptor}) y 
 
 \begin{figure}[H]
  \centering
-  \subfigure[Dedal]{
+  \subfigure[Dedal de la punta]{
     \includegraphics[width=0.18\textwidth]{Transmisor/Dedal_1.png}}
-  \subfigure[Dedal]{
+  \subfigure[Dedal guía de falange]{
     \includegraphics[width=0.18\textwidth]{Transmisor/Dedal_2.png}}
   \subfigure[Dedal del pulgar]{
     \includegraphics[width=0.18\textwidth]{Transmisor/Dedal_3_Pulgar.png}}
@@ -33,13 +33,23 @@ El guante se diseñó en Solid Edge (ver sección~\ref{sec:disenio_receptor}) y 
  \label{fig:piezas_guante}
 \end{figure}
 
-\pendiente{Describir la función de cada pieza de la figura~\ref{fig:piezas_guante} (en particular la ``resortera'' y la tapa del potenciómetro), cómo se transmite el movimiento del dedo al eje del potenciómetro y cómo vuelve a la posición de reposo. Confirmar si el párrafo siguiente describe el mecanismo final.}
+El movimiento de cada dedo llega a su potenciómetro a través de una tanza, siguiendo este recorrido:
+
+\begin{enumerate}
+    \item \textbf{Dedal de la punta:} un extremo de la tanza está atado a este dedal, colocado en la falange distal. Su tamaño varía ligeramente según el dedo.
+    \item \textbf{Dedales guía:} la tanza recorre la parte superior del dedo sujeta a un dedal en cada falange, que la mantiene cerca del dedo. Sus medidas también dependen del dedo.
+    \item \textbf{Palanca del potenciómetro:} ya sobre el dorso de la mano, la tanza se une a una pequeña palanca montada en el eje del potenciómetro. Al flexionar el dedo, la tanza tira de la palanca y hace girar el eje.
+    \item \textbf{Resorte y resortera:} desde la palanca, la tanza continúa hasta un pequeño tubo horizontal que contiene un resorte, pasa por dentro del resorte y termina atada a la resortera. Al cerrar el dedo, la tanza arrastra la resortera y comprime el resorte.
+    \item \textbf{Retorno:} al abrir el dedo, el resorte se descomprime, empuja la resortera hacia su posición natural y mantiene la tanza tensa, de modo que el eje del potenciómetro vuelve a la posición de reposo. El fin de ese recorrido lo marca la pieza llamada tapa del potenciómetro, que es en realidad la tapa trasera del tubo del resorte.
+\end{enumerate}
+
+El resorte cumple dos funciones: devuelve el potenciómetro a su posición cuando el dedo se abre y mantiene la tanza siempre tensa, lo que reduce la holgura al inicio del movimiento. El agarre del ESP32 fija la placa sobre la muñeca.
 
 Al flexionar el dedo, sus tres falanges producen un desplazamiento del elemento de transmisión que, aproximadamente, es la suma de las contribuciones de cada articulación:
 \begin{equation}
 \Delta x \approx r_1\,\Delta\theta_1 + r_2\,\Delta\theta_2 + r_3\,\Delta\theta_3 ,
 \end{equation}
-donde $r_j$ es la distancia efectiva entre el elemento de transmisión y el eje de la articulación $j$. Ese desplazamiento hace girar el eje del potenciómetro, de radio de arrastre $R$, un ángulo $\Delta\phi = \Delta x / R$. Como los radios $r_j$ dependen de la mano de cada operador y del ajuste del guante, la relación entre la flexión del dedo y la lectura del ADC no es la misma para todos los usuarios ni para todos los dedos. Además aparecen holguras al inicio del recorrido e histéresis por rozamiento. Por este motivo el firmware no usa una relación fija, sino una calibración de dos puntos por dedo (sección~\ref{sec:calibracion_dedos}).
+donde $r_j$ es la distancia efectiva entre el elemento de transmisión y el eje de la articulación $j$. Ese desplazamiento tira de la palanca del potenciómetro, de largo $R$, y hace girar su eje un ángulo $\Delta\phi \approx \Delta x / R$. La relación es sólo aproximada: vale mientras la tanza tire casi perpendicular a la palanca, y deja de ser lineal a medida que la palanca gira. Como los radios $r_j$ dependen de la mano de cada operador y del ajuste del guante, la relación entre la flexión del dedo y la lectura del ADC no es la misma para todos los usuarios ni para todos los dedos. Además aparecen holguras al inicio del recorrido e histéresis por rozamiento. Por este motivo el firmware no usa una relación fija, sino una calibración de dos puntos por dedo (sección~\ref{sec:calibracion_dedos}). Esa calibración corrige la escala y el desplazamiento de cada dedo, pero no la falta de linealidad del mecanismo, que se traslada al ángulo del servo.
 
 \subsection{Conexionado}
 
