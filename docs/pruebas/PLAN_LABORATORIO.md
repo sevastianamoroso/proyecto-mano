@@ -74,7 +74,7 @@ de 5 V y el USB de la notebook se "empujen" entre sí.
 | Sólo 12 V: ¿enciende el ESP32? / pin 5V (V) | / |
 
 **Cómo interpretarlo:**
-- **5 V separados:** el ESP32 se alimenta sólo por USB y los servos sólo por el regulador. Es lo que dice el informe. Seguí con P2.
+- **5 V separados:** es lo esperado, porque el pin 5V del ESP32 se removió. El ESP32 se alimenta sólo por USB y los servos sólo por el regulador. Seguí con P2.
 - **5 V unidos:** los dos quedan conectados al mismo punto. Si en el paso 2 la tira de servos marca casi 5 V, el USB está alimentando la línea de los servos; si en el paso 3 el ESP32 enciende, el regulador alimenta al ESP32. **No sigas con la mano en movimiento: avisame** y vemos cómo separarlos (por ejemplo, cortando el cable de 5 V del USB o el puente de la placa base).
 
 ---
