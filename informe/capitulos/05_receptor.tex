@@ -71,10 +71,10 @@ El uso de la placa base del ESP32 (figura~\ref{f:Extra}) simplificó el conexion
 
 \begin{itemize}
     \item \textbf{Servos:} una fuente externa de \SI{12}{\volt} y \SI{4}{\ampere} alimenta un regulador conmutado reductor (\textit{buck}) basado en el MP1584, cuya salida de \SI{5}{\volt} se conecta a los pines de alimentación de la placa base, de donde la toman los siete servos.
-    \item \textbf{ESP32:} se alimenta por su conector micro-USB desde la computadora, que se usa también para la telemetría.
+    \item \textbf{ESP32:} se alimenta por su conector micro-USB. Durante las pruebas lo alimenta la computadora, que también recibe la telemetría; en el diseño final se prevé un \textit{powerbank} o un paquete de baterías.
 \end{itemize}
 
-Las masas de ambas alimentaciones están unidas, ya que la señal PWM de cada servo se mide respecto del GND del ESP32. \pendiente{Verificar con el multímetro si los pines de \SI{5}{\volt} de la placa base están unidos al pin 5V del ESP32. Si lo están, el ESP32 queda conectado también a la salida del buck, y hay que confirmar que su placa tenga un diodo entre el USB y el pin 5V; de lo contrario, el buck podría inyectar corriente al puerto USB de la computadora. Corregir esta descripción según el resultado.}
+Las masas de ambas alimentaciones están unidas, ya que la señal PWM de cada servo se mide respecto del GND del ESP32. Para que las dos alimentaciones no queden conectadas entre sí, se removió el pin 5V de la placa del ESP32: de lo contrario, ese pin quedaría unido a los \SI{5}{\volt} de la placa base y el regulador podría inyectar corriente al puerto USB de la computadora.
 
 \begin{figure}[H]
  \centering
