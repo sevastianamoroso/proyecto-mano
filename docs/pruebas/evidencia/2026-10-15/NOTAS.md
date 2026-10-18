@@ -38,3 +38,17 @@ Capacitores de entrada: 470 µF + 100 nF entre IN+ e IN− (las capturas "sin ca
 
 - El capacitor reduce el pico de corriente de entrada en reposo a la mitad (~0,38 → ~0,18 A) sin cambiar la media (~75–100 mA): cambia la forma, no el consumo.
 - Parte del filtrado lo hace el propio shunt (0,5 Ω × 470 µF ≈ 0,24 ms, del orden del período de ráfaga). Sin shunt el suavizado visto por la fuente sería menor.
+
+## P16 — Respuesta del sistema con el graficador MATLAB (v2.3.0, `TELEMETRIA_MATLAB = 1`)
+Funcionamiento del graficador: [`EXPLICACION_GRAFICADOR_MATLAB.md`](../../EXPLICACION_GRAFICADOR_MATLAB.md).
+Arriba, la orden del Tx ubicada en el instante del reloj del Rx en que se procesó esa trama (alineada por `secuencia`); abajo, la posición aplicada por el Rx.
+
+| Archivo | Original | Señal |
+|---|---|---|
+| `P16_matlab_pulgar.jpg` | IMG-20261015-WA0018 | Pulgar: tres flexiones (25° ↔ 90°) |
+| `P16_matlab_indice.jpg` | IMG-20261015-WA0019 | Índice: flexiones completas y parciales (~57°, ~46°) |
+| `P16_matlab_muneca_rotacional.jpg` | IMG-20261015-WA0020 | Muñeca rotacional: 91° → 18° → 139° → 87° |
+| `P16_matlab_muneca_vertical.jpg` | IMG-20261015-WA0021 | Muñeca vertical: 59° → 32° → 90° → 45° → 73° → 57° |
+
+- **Eje de tiempo:** dice "ms", pero el factor de escala ×10⁵ de MATLAB quedó fuera de la captura (cada marca = 500 ms; ventana de 5 s).
+- Los pequeños saltos de ±1° de la orden en las mesetas no aparecen en el Rx: es la banda muerta (1° dedos, 1,2° muñeca). Por eso también el Rx puede quedar 1° corrido del Tx (índice en reposo: 25° Tx, 26° Rx).

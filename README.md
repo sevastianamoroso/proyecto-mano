@@ -33,8 +33,8 @@ git checkout main     # volver a la última versión
 | `v1.0.0` | Filtro de Kalman. Signo del gyro de Pitch invertido y uso de variable sin inicializar en Roll → la muñeca se comporta "como un mouse" (deriva/histéresis). | Original, referencia para comparar |
 | `v2.0.0` | Filtro complementario (α = 0.98) sobre ángulos absolutos del acelerómetro, calibración de bias del gyro al inicio, mapeo saturado. Receptor con límites mecánicos (`constrain`). | Superada por v2.2.0 |
 | `v2.1.0` | Receptor: slew-rate más rápido (dedos 8°/ciclo, muñeca 4/5°/ciclo), `INVERTIR_DEDO[]` por dedo, `WiFi.setSleep(false)`. | Superada por v2.2.0 |
-| `v2.2.0` | Latencia: el Receptor actúa al llegar cada paquete (sin esperar el tick de 50 Hz) y DLPF del MPU6050 a 44 Hz en el Transmisor. | ✅ Probada en hardware: **versión definitiva** |
-| `v2.3.0` | Transmisor: al calibrar con `c` se pausan la lectura de dedos, el envío y la telemetría (la mano va a Home por failsafe y se recupera al terminar). | A validar en hardware |
+| `v2.2.0` | Latencia: el Receptor actúa al llegar cada paquete (sin esperar el tick de 50 Hz) y DLPF del MPU6050 a 44 Hz en el Transmisor. | Superada por v2.3.0 |
+| `v2.3.0` | Transmisor: al calibrar con `c` se pausan la lectura de dedos, el envío y la telemetría (la mano va a Home por failsafe y se recupera al terminar). | ✅ Probada en hardware: **versión definitiva** |
 
 **Compatibilidad:** el protocolo (`ProtocoloBrazo.h`) es idéntico en todas las versiones, así que se
 pueden mezclar placas de distintas versiones. Para reproducir una versión completa (en especial `v2.1.0` y

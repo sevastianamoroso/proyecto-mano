@@ -83,7 +83,7 @@ Las masas de ambas alimentaciones están unidas, ya que la señal PWM de cada se
   \subfigure[]{
     \includegraphics[width=0.45\textwidth]{Conexionado_Receptor_2.jpeg}}
  \caption{Conexionado del receptor.}
- \label{fig:conexionado_rx}
+ \label{fig:conexionado_rx}
 \end{figure}
 
 La figura~\ref{fig:diagrama_rx} muestra el diagrama de conexionado del receptor, con las dos alimentaciones separadas.
@@ -151,10 +151,14 @@ Además del consumo medio, deben considerarse los picos de arranque: cuando vari
 
 \begin{itemize}
     \item \textbf{En firmware}, el limitador de velocidad del receptor (sección~\ref{sec:slew}) impide que los servos reciban escalones grandes de posición, lo que reduce la aceleración pedida a los motores y, por lo tanto, los picos de corriente.
-    \item \textbf{En hardware}, un capacitor electrolítico de \SI{470}{\micro\farad} / \SI{35}{\volt} en paralelo con uno cerámico de \SI{100}{\nano\farad} sobre la línea de \SI{5}{\volt} de los servos, junto a los pines de la placa base. El electrolítico entrega la corriente de los picos de corta duración, que el regulador no alcanza a seguir, y el cerámico filtra el ruido de alta frecuencia que generan los motores y la conmutación del regulador.
+    \item \textbf{En hardware}, dos pares de capacitores iguales, cada uno formado por un electrolítico de \SI{470}{\micro\farad} / \SI{35}{\volt} en paralelo con un cerámico de \SI{100}{\nano\farad}:
+    \begin{itemize}
+        \item \textbf{A la salida del regulador}, sobre la línea de \SI{5}{\volt} de los servos y junto a los pines de la placa base. El electrolítico entrega la corriente de los picos de corta duración, que el regulador no alcanza a seguir, y el cerámico filtra el ruido de alta frecuencia que generan los motores y la conmutación del regulador.
+        \item \textbf{A la entrada del regulador}, entre IN+ e IN$-$. Entrega los pulsos de corriente de la conmutación del regulador, de modo que la fuente de \SI{12}{\volt} y sus cables vean una corriente más pareja.
+    \end{itemize}
 \end{itemize}
 
-\pendiente{Incluir el consumo medido (medio y picos) y la caída de tensión en la línea de \SI{5}{\volt} durante los picos, según las pruebas de laboratorio.}
+El consumo medido sobre el montaje se presenta en la sección~\ref{sec:pruebas_alimentacion}. En resumen, a \SI{12}{\volt} el receptor consume en promedio unos \SIrange{75}{100}{\milli\ampere} en reposo y unos \SI{0.2}{\ampere} moviendo la muñeca en sus dos ejes, con picos de \SIrange{0.6}{0.7}{\ampere}. Estos valores están muy por debajo de los \SI{4}{\ampere} de la fuente y de los \SI{3}{\ampere} del regulador.
 
 \subsection{Firmware del receptor}
 

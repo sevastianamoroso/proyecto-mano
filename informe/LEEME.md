@@ -34,8 +34,8 @@ Para subirlo: comprimir `main.tex`, `capitulos/`, `Imagenes/`, `bib/` y `bst/` y
 | `capitulos/05_receptor.tex` | Mano: mecánica, alimentación, firmware (cola, máquina de estados, slew-rate, banda muerta) |
 | `capitulos/06_evolucion.tex` | Evolución preliminar → v1.0.0 (Kalman) → v2.3.0 |
 | `capitulos/07_analisis_temporal.tex` | Estimación de latencia |
-| `capitulos/08_pruebas.tex` | Pruebas (todavía con las mediciones del firmware preliminar) |
-| `capitulos/09_conclusiones.tex` | Conclusiones (a redactar) y trabajo futuro |
+| `capitulos/08_pruebas.tex` | Pruebas: firmware preliminar (antecedente) y alimentación del receptor medida con la v2.3.0 |
+| `capitulos/09_conclusiones.tex` | Conclusiones (borrador) y trabajo futuro |
 | `capitulos/A_ajuste_parametros.tex` | Apéndice: guía de ajuste de parámetros |
 | `borradores/diagrama_firmware.tex` | Borrador: diagrama tipo clases del firmware (pendiente de revisar y anexar) |
 | `bib/IEEEreferencias.bib` | Referencias (estilo IEEE) |
