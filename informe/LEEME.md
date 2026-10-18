@@ -37,7 +37,8 @@ Para subirlo: comprimir `main.tex`, `capitulos/`, `Imagenes/`, `bib/` y `bst/` y
 | `capitulos/08_pruebas.tex` | Pruebas: firmware preliminar (antecedente) y alimentación del receptor medida con la v2.3.0 |
 | `capitulos/09_conclusiones.tex` | Conclusiones (borrador) y trabajo futuro |
 | `capitulos/A_ajuste_parametros.tex` | Apéndice: guía de ajuste de parámetros |
-| `borradores/diagrama_firmware.tex` | Borrador: diagrama tipo clases del firmware (pendiente de revisar y anexar) |
+| `capitulos/B_estructura_firmware.tex` | Apéndice: estructura del firmware (diagramas tipo clases) |
+| `borradores/diagrama_firmware.tex` | Versión independiente del apéndice B (ya incorporado; editar el apéndice) |
 | `bib/IEEEreferencias.bib` | Referencias (estilo IEEE) |
 | `referencia/` | `main.tex` original y PDF del informe preliminar, sólo como referencia |
 

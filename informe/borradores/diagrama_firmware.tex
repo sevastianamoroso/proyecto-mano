@@ -27,7 +27,7 @@
   comp/.style={{Diamond[length=3mm,width=2mm]}-, thick},
   etq/.style={font=\scriptsize\itshape, fill=white, inner sep=1pt},
   paquete/.style={draw, dashed, rounded corners, inner sep=8pt},
-  modulo/.style={draw, fill=#1, minimum width=3.4cm, minimum height=7mm, font=\small, align=center},
+  modulo/.style={draw, fill=#1, minimum width=4.4cm, minimum height=7mm, font=\small, align=center},
 }
 
 % \clase[clase=color, at=...]{id}{estereotipo}{nombre}{atributos}{operaciones}
@@ -77,7 +77,7 @@ La figura~\ref{fig:fw_general} muestra los dos programas y lo que comparten. El 
   \node[modulo=ctx, below=of timu] (tdedos) {LecturaDedos\\\scriptsize potenciómetros};
   \node[modulo=ctx, below=of tdedos] (tenl) {EnlaceTx\\\scriptsize ESP-NOW};
   \begin{scope}[on background layer]
-    \node[paquete, fill=ctx!30, fit=(tmain)(tenl), label={[font=\bfseries]above:Transmisor.ino (guante)}] (ptx) {};
+    \node[paquete, fill=ctx!30, fit=(tmain)(tenl), inner xsep=16pt, label={[font=\bfseries]above:Transmisor.ino (guante)}] (ptx) {};
   \end{scope}
 
   % Receptor
@@ -87,7 +87,7 @@ La figura~\ref{fig:fw_general} muestra los dos programas y lo que comparten. El 
   \node[modulo=crtos, below=of rcola] (rtask) {TareaControlActuadores\\\scriptsize máquina de estados};
   \node[modulo=crx, below=of rtask] (ract) {Actuadores\\\scriptsize 7 servos};
   \begin{scope}[on background layer]
-    \node[paquete, fill=crx!30, fit=(rmain)(ract), label={[font=\bfseries]above:Receptor.ino (mano)}] (prx) {};
+    \node[paquete, fill=crx!30, fit=(rmain)(ract), inner xsep=16pt, label={[font=\bfseries]above:Receptor.ino (mano)}] (prx) {};
   \end{scope}
 
   % Compartido
@@ -96,17 +96,22 @@ La figura~\ref{fig:fw_general} muestra los dos programas y lo que comparten. El 
     \node[paquete, fill=cshared!40, fit=(msg), label={[font=\bfseries]below:ProtocoloBrazo.h (compartido)}] {};
   \end{scope}
 
+  % Transmisor: la tarea usa los tres módulos (bus por la izquierda, dentro del paquete)
   \draw[asoc] (tmain) -- (ttask);
-  \draw[usa] (ttask) -- (timu);
-  \draw[usa] (ttask.west) -- ++(-0.5,0) |- (tdedos.west);
-  \draw[asoc] (ttask.east) -- ++(0.4,0) |- (tenl.east);
+  \draw[usa] (ttask.west) -- ++(-0.35,0) |- (timu.west);
+  \draw[usa] ([xshift=-0.35cm]ttask.west) |- (tdedos.west);
+  \draw[usa] ([xshift=-0.35cm]ttask.west) |- (tenl.west);
+  % Enlace de radio
   \draw[asoc, line width=1.4pt] (tenl.east) -- node[etq, above, sloped] {ESP-NOW (radio)} (rcb.west);
+  % Receptor: cadena de recepción y creación de la tarea (por la derecha, dentro del paquete)
+  \draw[asoc] (rmain) -- (rcb);
   \draw[asoc] (rcb) -- (rcola);
   \draw[asoc] (rcola) -- (rtask);
   \draw[asoc] (rtask) -- (ract);
-  \draw[asoc] (rmain.east) -- ++(0.4,0) |- (rtask.east);
-  \draw[usa] (tenl.south) |- (msg.west);
-  \draw[usa] (rcb.south east) -- ++(0.5,0) |- (msg.east);
+  \draw[asoc] (rmain.east) -- ++(0.35,0) |- (rtask.east);
+  % Ambos programas incluyen el protocolo
+  \draw[usa] (ptx.south) |- node[etq, pos=0.75, above] {incluye} (msg.west);
+  \draw[usa] (prx.south) |- node[etq, pos=0.75, above] {incluye} (msg.east);
 \end{tikzpicture}
 \caption{Vista general del firmware. En violeta, los elementos de FreeRTOS (tareas y cola).}
 \label{fig:fw_general}
@@ -148,7 +153,7 @@ La calibración de los dedos corre en \texttt{loop()}, fuera de la tarea. Para q
   \clase[clase=ctx]{main}{programa principal}{Transmisor.ino}
     {—}
     {setup()\\loop() \textrm{: comando} 'c'}
-  \clase[clase=crtos, at={(6.4,0)}]{task}{tarea FreeRTOS · núcleo 1 · prioridad 2}{TareaTransmision}
+  \clase[clase=crtos, at={(6.4,0)}]{task}{tarea · núcleo 1 · prioridad 2}{TareaTransmision}
     {PERIODO\_CONTROL\_MS = 20\\
      xLastWakeTime : TickType\_t\\
      ticksTelemetria : uint32\_t\\
@@ -167,7 +172,7 @@ La calibración de los dedos corre en \texttt{loop()}, fuera de la tarea. Para q
     {calcularChecksumBrazo(msg) : uint16\_t\\
      validarPaqueteBrazo(msg) : bool}
 
-  \clase[clase=ctx, at={(0,-5.4)}]{imu}{módulo}{EstimadorMuñeca}
+  \clase[clase=ctx, at={(6.4,-5.4)}]{imu}{módulo}{EstimadorMuñeca}
     {mpu : Adafruit\_MPU6050\\
      anguloPitch, anguloRoll : float\\
      gyroBiasX, gyroBiasY : float\\
@@ -179,7 +184,7 @@ La calibración de los dedos corre en \texttt{loop()}, fuera de la tarea. Para q
      calibrarIMU()\\
      pitchAcc(a) : float\\
      rollAcc(a) : float}
-  \clase[clase=ctx, at={(6.4,-5.4)}]{dedos}{módulo}{LecturaDedos}
+  \clase[clase=ctx, at={(0,-5.4)}]{dedos}{módulo}{LecturaDedos}
     {PINES\_DEDOS[5] : int\\
      calMinADC[5], calMaxADC[5] : uint16\_t\\
      memoriaNVS : Preferences\\
@@ -197,11 +202,13 @@ La calibración de los dedos corre en \texttt{loop()}, fuera de la tarea. Para q
 
   \draw[asoc] (main.east |- task.text split) -- node[etq, above] {crea} (task.west |- task.text split);
   \draw[asoc] (task.east |- msg.text split) -- node[etq, above] {arma} (msg.west |- msg.text split);
-  \coordinate (bus) at (6.4,-4.3);
-  \draw[usa] (task.south) -- (bus) -| node[etq, pos=0.25, above] {usa} (imu.north);
-  \draw[usa] (bus) -- (dedos.north);
+  % La tarea usa los tres módulos; LecturaDedos queda debajo del programa principal para que
+  % la flecha del comando 'c' baje recta sin cruzar el bus.
+  \coordinate (bus) at (6.4,-4.4);
+  \draw[usa] (task.south) -- node[etq, pos=0.8, right] {usa} (imu.north);
+  \draw[usa] (bus) -| ([xshift=1.2cm]dedos.north);
   \draw[usa] (bus) -| ([xshift=-0.6cm]enl.north);
-  \draw[asoc] ([xshift=1.5cm]main.south) -- (1.5,-4.8) -| node[etq, pos=0.25, below] {comando 'c'} ([xshift=-1.2cm]dedos.north);
+  \draw[asoc] ([xshift=-1.2cm]main.south) -- node[etq, pos=0.6, right] {comando 'c'} ([xshift=-1.2cm]dedos.north);
   \draw[usa] ([xshift=1.6cm]enl.north) -- node[etq, right] {envía} ([xshift=1.6cm]msg.south);
 \end{tikzpicture}}
 \caption{Estructura del transmisor.}
@@ -229,7 +236,7 @@ En el receptor, el \emph{callback} \texttt{OnDataRecv} corre en el núcleo~0, de
      \textrm{sobrescribe el anterior}}
     {xQueueOverwriteFromISR() \textrm{(escribe)}\\
      xQueueReceive() \textrm{(lee)}}
-  \clase[clase=crtos, at={(12.8,0)}]{task}{tarea FreeRTOS · núcleo 1 · prioridad 3}{TareaControlActuadores}
+  \clase[clase=crtos, at={(12.8,0)}]{task}{tarea · núcleo 1 · prioridad 3}{TareaControlActuadores}
     {estadoActual : EstadoSistema\\
      marcaTiempoUltimoPaquete : uint32\_t\\
      tiempoEnHomeMs : uint32\_t\\
@@ -241,13 +248,13 @@ En el receptor, el \emph{callback} \texttt{OnDataRecv} corre en el núcleo~0, de
      \textrm{\itshape 4. desacople en reposo (2 s)}\\
      \textrm{\itshape 5. telemetría (5 Hz)}}
 
-  \clase[clase=crx, at={(0,-5.6)}]{main}{programa principal}{Receptor.ino}
+  \clase[clase=crx, at={(0,-3.4)}]{main}{programa principal}{Receptor.ino}
     {—}
     {setup()\\
      \textrm{\itshape posición Home, temporizadores PWM,}\\
      \textrm{\itshape cola, ESP-NOW y tarea}\\
      loop() \textrm{\itshape (vacío)}}
-  \clase[clase=cshared, at={(6.4,-5.6)}]{est}{enumeración}{EstadoSistema}
+  \clase[clase=cshared, at={(6.4,-3.3)}]{est}{enumeración}{EstadoSistema}
     {ESTADO\_ESPERANDO\_SYNC\\
      ESTADO\_OPERACION\_NORMAL\\
      ESTADO\_FAILSAFE\_SIN\_SENAL}
@@ -261,7 +268,7 @@ En el receptor, el \emph{callback} \texttt{OnDataRecv} corre en el núcleo~0, de
     {acoplarServos()\\
      desacoplarServos()\\
      anguloServoDedo(i, pos) : int}
-  \clase[clase=cshared, at={(6.4,-8.9)}]{par}{constantes}{ParámetrosControl}
+  \clase[clase=cshared, at={(6.4,-6.1)}]{par}{constantes}{ParámetrosControl}
     {TIMEOUT\_FAILSAFE\_MS = 250\\
      DEADBAND\_DEDOS = 1.0, DEADBAND\_MUNIECA = 1.2\\
      VEL\_MAX\_DEDOS = 8.0 \textrm{°/ciclo}\\
@@ -272,9 +279,9 @@ En el receptor, el \emph{callback} \texttt{OnDataRecv} corre en el núcleo~0, de
 
   \draw[asoc] (cb.east |- cola.text split) -- node[etq, above] {escribe} (cola.west |- cola.text split);
   \draw[asoc] (cola.east |- cola.text split) -- node[etq, above] {lee} (task.west |- cola.text split);
-  \draw[comp] (task.south west) -- node[etq, above, sloped] {estado} (est.north east);
+  \draw[comp] (task.west |- est.east) -- node[etq, above] {estado} (est.east);
   \draw[asoc] ([xshift=1cm]task.south) -- node[etq, right] {mueve} ([xshift=1cm]act.north);
-  \draw[usa] (act.south) |- node[etq, pos=0.75, above] {usa} (par.east);
+  \draw[usa] (act.west |- par.east) -- node[etq, above] {usa} (par.east);
   \draw[asoc] (main.north) -- node[etq, left] {registra} (cb.south);
 \end{tikzpicture}}
 \caption{Estructura del receptor.}

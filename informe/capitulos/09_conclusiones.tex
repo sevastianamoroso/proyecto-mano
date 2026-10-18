@@ -1,7 +1,7 @@
 \section{Conclusiones}
 \label{sec:conclusiones}
 
-\pendiente{Borrador: completar con la latencia medida y con las pruebas de deriva y retorno de la muñeca con la versión actual.}
+\pendiente{Estas conclusiones todavía no incluyen la latencia medida ni las pruebas de deriva y retorno de la muñeca con la versión actual: son los siguientes pasos y se incorporarán una vez realizados.}
 
 Se desarrolló un sistema de telerobótica de bajo costo en el que un guante con sensores comanda una mano impresa en 3D por medio de un enlace inalámbrico ESP-NOW. El sistema replica la flexión de los cinco dedos y dos grados de libertad de la muñeca (desplazamiento vertical y rotación), con un firmware sobre FreeRTOS en cada nodo.
 
@@ -19,14 +19,8 @@ Entre las limitaciones del sistema actual se encuentran la falta de realimentaci
 
 \subsection{Trabajo futuro}
 
-Durante el desarrollo se identificaron las siguientes mejoras, que no se implementaron:
-
 \begin{itemize}
-    \item \textbf{Medir la latencia real} de punta a punta (sección~\ref{sec:latencia}).
-    \item \textbf{Filtro \textit{One Euro}} \cite{casiez2012} en lugar del limitador de velocidad: filtra fuertemente en reposo y casi nada durante los movimientos rápidos.
-    \item \textbf{Aumentar la tasa de envío a \SI{100}{\hertz}}. El limitador de velocidad actúa por iteración, por lo que en ese caso debería escalarse con el tiempo real entre iteraciones; de lo contrario la velocidad máxima se duplicaría.
-    \item \textbf{PWM de mayor frecuencia en los MG946R}, de \SIrange{100}{200}{\hertz}. El fabricante sólo especifica \SI{50}{\hertz}, por lo que debería probarse vigilando la temperatura de los servos.
-    \item \textbf{Robustez de la calibración:} rechazar una calibración en la que la lectura de mano abierta y cerrada coincidan, que hoy produciría una división por cero en la conversión del dedo.
-    \item \textbf{Emparejamiento sin reprogramar:} la dirección MAC del receptor está fija en el código del transmisor; si se cambia la placa receptora hay que reprogramar el guante.
-    \item \textbf{Realimentación al operador}, por ejemplo háptica, para tareas de manipulación.
+    \item \textbf{Medir la latencia real} de punta a punta (sección~\ref{sec:latencia}), que hoy es sólo una estimación.
+    \item \textbf{Aumentar las frecuencias de trabajo y evaluar la respuesta de los servos.} Por un lado, subir la tasa de envío a \SI{100}{\hertz}; como el limitador de velocidad actúa por iteración, en ese caso debería escalarse con el tiempo real entre iteraciones para que la velocidad máxima no se duplique. Por otro, probar un PWM de \SIrange{100}{200}{\hertz} en los MG946R, para los que el fabricante sólo especifica \SI{50}{\hertz}, vigilando la temperatura y el comportamiento de los servos.
+    \item \textbf{Investigar otras mejoras posibles} a partir de los resultados de estas pruebas.
 \end{itemize}

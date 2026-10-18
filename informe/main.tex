@@ -28,7 +28,7 @@
 \marginsize{2cm}{2cm}{2cm}{2cm} % Izquierda, derecha, arriba, abajo
 \usepackage{gensymb}
 \usepackage{tikz}
-\usetikzlibrary{positioning, arrows.meta, shapes.geometric, fit, calc}
+\usetikzlibrary{positioning, arrows.meta, shapes.geometric, shapes.multipart, fit, calc, backgrounds}
 \usepackage{appendix}
 \renewcommand{\appendixname}{Apéndices}
 \renewcommand{\appendixtocname}{Apéndices}
@@ -88,6 +88,29 @@
   bloque/.style={draw, rounded corners, align=center, fill=blue!5, minimum height=1cm, font=\small},
   flecha/.style={-{Stealth[length=2.5mm]}, thick},
 }
+
+% Diagramas tipo clases del firmware (apéndice B)
+\definecolor{ctx}{RGB}{214,230,250}     % transmisor
+\definecolor{crx}{RGB}{220,240,214}     % receptor
+\definecolor{cshared}{RGB}{250,236,204} % compartido
+\definecolor{crtos}{RGB}{236,224,248}   % objetos de FreeRTOS
+\tikzset{
+  clase/.style={draw, rectangle split, rectangle split parts=3,
+    rectangle split part align={center,left,left},
+    rectangle split part fill={#1,white}, text width=5.3cm,
+    font=\scriptsize, inner sep=3pt, anchor=north},
+  usa/.style={-{Stealth[open,length=2.2mm]}, dashed, thick},
+  asoc/.style={-{Stealth[length=2.2mm]}, thick},
+  comp/.style={{Diamond[length=3mm,width=2mm]}-, thick},
+  etq/.style={font=\scriptsize\itshape, fill=white, inner sep=1pt},
+  paquete/.style={draw, dashed, rounded corners, inner sep=8pt},
+  modulo/.style={draw, fill=#1, minimum width=4.4cm, minimum height=7mm, font=\small, align=center},
+}
+% \clase[clase=color, at=...]{id}{estereotipo}{nombre}{atributos}{operaciones}
+\newcommand{\clase}[6][]{%
+  \node[clase,#1] (#2) {{\itshape «#3»}\\\textbf{\small #4}
+    \nodepart{second}\ttfamily #5
+    \nodepart{third}\ttfamily #6};}
 
 % hyperref al final del preámbulo
 \usepackage[colorlinks=true,plainpages=true,citecolor=blue,linkcolor=blue,urlcolor=blue]{hyperref}
@@ -163,6 +186,7 @@ Bahía Blanca, Buenos Aires \\
 \newpage
 \begin{appendices}
 \input{capitulos/A_ajuste_parametros}
+\input{capitulos/B_estructura_firmware}
 \end{appendices}
 
 \end{document}
