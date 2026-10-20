@@ -47,6 +47,20 @@ const TickType_t PERIODO_CONTROL_MS = 20;
 // Tras procesar cada paquete y actualizar los servos, PIN_LATENCIA toma el bit 0 de su secuencia.
 #define MEDIR_LATENCIA 0
 const int PIN_LATENCIA = 23;
+// Medición sin osciloscopio: cable del GPIO23 del Transmisor a PIN_FLANCO_TX (más GND común).
+// El Receptor toma con micros() cada cambio de ese pin (= inicio del ciclo del Tx) y, por paquete,
+// imprime: L,secuencia,radio_us (hasta el callback ESP-NOW),total_us (hasta escribir los servos)
+const int PIN_FLANCO_TX = 34; // sólo entrada, libre
+
+#if MEDIR_LATENCIA
+// Instante del último flanco del Tx que dejó el pin en 0 / en 1 (= bit 0 de la secuencia)
+volatile uint32_t tFlancoTx[2] = {0, 0};
+volatile uint32_t latenciaRadioUs = 0;
+
+void IRAM_ATTR isrFlancoTx() {
+    tFlancoTx[digitalRead(PIN_FLANCO_TX)] = micros();
+}
+#endif
 
 // Telemetría para MATLAB (poner en 1 sólo para registrar datos; ver Transmisor). Una línea CSV
 // por ciclo de control (50 Hz) con la secuencia del último paquete y la posición actual (tras el slew):
@@ -145,6 +159,9 @@ void OnDataRecv(const uint8_t* mac, const uint8_t* incomingData, int len) {
     if (!validarPaqueteBrazo(*paquete)) {
         return; // Trama corrompida por RF descartada
     }
+#if MEDIR_LATENCIA
+    latenciaRadioUs = micros() - tFlancoTx[paquete->secuencia & 1];
+#endif
 
     // Transferencia thread-safe a la cola de FreeRTOS sin esperas bloqueantes
     if (colaMensajesBrazo != NULL) {
@@ -212,7 +229,10 @@ void setup() {
                   "otro");
 #if MEDIR_LATENCIA
     pinMode(PIN_LATENCIA, OUTPUT);
-    Serial.printf("[LATENCIA] Modo medición activo: señal en GPIO%d.\n", PIN_LATENCIA);
+    pinMode(PIN_FLANCO_TX, INPUT);
+    attachInterrupt(digitalPinToInterrupt(PIN_FLANCO_TX), isrFlancoTx, CHANGE);
+    Serial.printf("[LATENCIA] Modo medición activo: señal en GPIO%d, flanco del Tx en GPIO%d.\n",
+                  PIN_LATENCIA, PIN_FLANCO_TX);
 #endif
 
     // Inicializar posiciones en Home seguro
@@ -361,6 +381,9 @@ void tareaControlActuadores(void* pvParameters) {
 #if MEDIR_LATENCIA
         if (paqueteNuevo) {
             digitalWrite(PIN_LATENCIA, paqueteEntrante.secuencia & 1);
+            uint32_t latenciaTotalUs = micros() - tFlancoTx[paqueteEntrante.secuencia & 1];
+            Serial.printf("L,%u,%lu,%lu\n", paqueteEntrante.secuencia,
+                          (unsigned long)latenciaRadioUs, (unsigned long)latenciaTotalUs);
         }
 #endif
 
