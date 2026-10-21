@@ -15,3 +15,7 @@ informe/**/*.fdb_latexmk
 informe/**/*.fls
 informe/main.pdf
 informe/borradores/*.pdf
+informe/presentacion/presentacion.pdf
+informe/**/*.nav
+informe/**/*.snm
+informe/**/*.vrb
