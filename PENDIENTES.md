@@ -15,21 +15,9 @@ Actualizado: 2026-10-26. Archivo pensado para retomar desde otra PC u otra sesi�
   - La salida de 5 V del regulador se midió con carga y casi no varía (sin cifras registradas).
     Corregido en el informe el 2026-10-26.
 
-## Estado del repositorio (sin commitear)
+## Estado del repositorio
 
-Rama actual: `docs/presentacion`. **Nada de lo siguiente está commiteado**; la carpeta se sincroniza por
-OneDrive, no por git.
-
-| Cambio | Archivos |
-|---|---|
-| Guía de estudio para la defensa (FreeRTOS, ESP-NOW, código parte por parte, preguntas) | `docs/aprendizaje/` + enlace en `README.md` |
-| Firmware de medición de latencia v2 (2026-10-25): receptor nuevo, guía y script | `Receptor_Latencia/`, `docs/pruebas/PRUEBA_LATENCIA.md`, `docs/pruebas/matlab/latencia_punta_a_punta.m` |
-| Método v1 archivado (firmware del usuario y captura del Serial Plotter) | `docs/pruebas/latencia_v1/` |
-| Anular pasado de GPIO 12 a GPIO 23 (ver abajo) | `Receptor/Receptor.ino`, `Receptor_Latencia/Receptor_Latencia.ino`, `EXPLICACION_CODIGO.md`, `informe/capitulos/05_receptor.tex`, `informe/presentacion/presentacion.tex`, `Receptor/Conexionado_Receptor.drawio`, `informe/Imagenes/Conexionado_Receptor_Diagrama.png`, `docs/pruebas/REGISTRO_PRUEBAS.md` |
-
-**Por decidir:** en qué rama se commitea cada cosa. El cambio de pin es firmware y convendría llevarlo a
-`main` (por ejemplo en `fix/pin-anular`). La guía y la latencia, en sus propias ramas o donde indique el
-usuario.
+Todo commiteado en `docs/presentacion`. **Por decidir:** llevarlo a `main` antes de la entrega.
 
 ## Hecho el 2026-10-22: anular en GPIO 23
 
@@ -41,10 +29,8 @@ usuario.
 - Ya se actualizaron el código, el informe, la presentación, el registro de pruebas y el diagrama.
 - **Queda pendiente:**
   - [ ] Flashear `Receptor/Receptor.ino` con el 23 y confirmar con la mano completa.
-  - [ ] El PNG del diagrama (`informe/Imagenes/Conexionado_Receptor_Diagrama.png`) se corrigió editando la
-    imagen; el original está en el scratchpad de la sesión. Lo prolijo es exportarlo de nuevo desde
-    `Receptor/Conexionado_Receptor.drawio` (app.diagrams.net → Exportar → PNG), que ya dice GPIO23.
-  - [ ] Recompilar el informe y la presentación y revisar las páginas afectadas.
+  - Hecho el 2026-10-26: PNG del diagrama exportado de nuevo desde el `.drawio` (dice GPIO23) y revisado
+    en el informe (fig. 17) y en la presentación (diapositiva 9).
 
 ## 1. Medición de latencia
 
