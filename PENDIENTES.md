@@ -1,6 +1,6 @@
 # Pendientes (traspaso entre sesiones)
 
-Actualizado: 2026-10-25. Archivo pensado para retomar desde otra PC u otra sesión de Claude. Borrar cada
+Actualizado: 2026-10-26. Archivo pensado para retomar desde otra PC u otra sesión de Claude. Borrar cada
 ítem cuando se cierre y borrar el archivo cuando quede vacío.
 
 ## Contexto que no está en el código
@@ -134,17 +134,17 @@ Propuesta, que dejaría el capítulo en unas 50 líneas:
   - incluir valores (sensibilidad, rango, bias medido en `calibrarIMU`, α = 0,98).
   - Hecho en la presentación el 2026-10-25: diapositivas "IMU: cómo mide el MPU6050" e "IMU: qué aporta
     cada sensor y por qué deriva". El ejemplo de deriva usa b = 0,01 rad/s, el orden esperado según
-    `PLAN_PRUEBAS.md` (A2), no un valor medido. **Falta el informe.**
+    `PLAN_PRUEBAS.md` (A2), no un valor medido. Informe hecho el 2026-10-26 (`04_transmisor.tex`: sensibilidades y ecuación de deriva). El bias medido sigue sin registrarse: anotar el valor que imprime `[MPU6050] Bias gyro` al encender.
 - [ ] **Colas en el receptor:** explicar la cola de un elemento con `Overwrite` y por qué no se usa una
   variable global (el callback está en el núcleo 0 y la tarea de control en el núcleo 1).
   - Hecho en la presentación el 2026-10-25 (diapositiva "Receptor: callback, cola y tarea de control").
-    **Falta el informe.**
+    Informe hecho el 2026-10-26 (`05_receptor.tex`). El informe ahora nombra `xQueueOverwriteFromISR`, como el código.
 - [ ] **`tareaTransmision` y núcleos 0/1:** explicar qué corre en cada núcleo y por qué, el recorrido de
   un dato del guante al servo, y qué pasa si un ciclo excede los 20 ms (`vTaskDelayUntil` no espera y la
   grilla se mantiene). Se habló en la sesión del 2026-10-24; la base está en
   `docs/aprendizaje/01_FREERTOS.md`.
   - Hecho en la presentación el 2026-10-25: "Firmware en tiempo real: dos núcleos" y la nueva "Recorrido
-    de un dato, del guante al servo". **Falta el informe.**
+    de un dato, del guante al servo". Informe hecho el 2026-10-26 (`03_arquitectura.tex`: reparto entre núcleos y recorrido; `04_transmisor.tex`: ciclo que excede los 20 ms).
 
 ### Sólo presentación (`informe/presentacion/presentacion.tex`) — hecho el 2026-10-25
 - [x] **Tema oscuro y estética:** fondo oscuro, portada con franja blanca para los logos, título con

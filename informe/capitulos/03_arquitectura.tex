@@ -56,6 +56,17 @@ Receptor & \texttt{tareaControlActuadores} & 1 & 3 & Supervisión del enlace, tr
 \label{tab:tareas}
 \end{table}
 
+\paragraph{Reparto entre núcleos.} En el núcleo 0 corren la radio y sus \textit{callbacks} (\texttt{OnDataSent} en el transmisor, \texttt{OnDataRecv} en el receptor), que sólo validan y copian datos. En el núcleo 1 corren las tareas propias. Así, la actividad de la radio, que es irregular (reintentos, recepción de tramas, tareas internas del Wi-Fi), no le agrega \textit{jitter} al ciclo de \SI{20}{\milli\second}. Como los dos núcleos ejecutan código al mismo tiempo, todo dato que pasa de uno a otro necesita un mecanismo seguro: en el receptor es una cola de FreeRTOS (sección~\ref{sec:receptor}); en el transmisor, el \textit{callback} de envío sólo escribe una variable \texttt{volatile bool} con el resultado del último envío, que se usa para la telemetría y no frena el flujo. En el transmisor, \texttt{loop()} y \texttt{tareaTransmision} comparten el núcleo 1, y la tarea tiene más prioridad; por eso el comando de calibración, que se atiende desde \texttt{loop()}, no necesita semáforo: nunca se ejecuta en paralelo con la tarea.
+
+\paragraph{Recorrido de un dato.} Un dato atraviesa el sistema en este orden:
+\begin{enumerate}
+    \item En el transmisor, núcleo 1: \texttt{tareaTransmision} lee la IMU y aplica el filtro, lee los cinco potenciómetros, arma el paquete con su suma de verificación y llama a \texttt{esp\_now\_send()}.
+    \item La pila Wi-Fi, en el núcleo 0, copia el paquete y lo transmite. Al recibir la confirmación (ACK) llama a \texttt{OnDataSent}.
+    \item En el receptor, núcleo 0: \texttt{OnDataRecv} valida el paquete y lo escribe en la cola.
+    \item En el receptor, núcleo 1: \texttt{tareaControlActuadores} despierta al llegar el paquete, aplica el \textit{failsafe}, el limitador de velocidad y la banda muerta, y escribe los servos.
+\end{enumerate}
+El dato cambia de núcleo dos veces: en el transmisor del 1 al 0, cuando la pila Wi-Fi copia el paquete, y en el receptor del 0 al 1, a través de la cola. La medición y el envío están en la misma tarea y en secuencia, por lo que nunca sale un paquete con una medición a medio hacer.
+
 \subsection{Protocolo de comunicación}
 \label{sec:protocolo}
 

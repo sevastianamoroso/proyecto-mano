@@ -104,7 +104,11 @@ El guante se alimenta por el conector USB del ESP32 desde la computadora, la mis
     \end{center}
     \end{figure}
 
-    Una consecuencia de emplear la fuerza de Coriolis es que estos giróscopos no registran el ángulo girado sino la \emph{velocidad angular}. Para obtener el ángulo es necesario integrar la medición respecto del tiempo. Los giróscopos responden rápido y con buena precisión en tiempos cortos, y siguen bien los cambios bruscos; pero, al integrar, cualquier error pequeño y constante en la velocidad (\textit{bias}) se acumula y el ángulo deriva (\textit{drift}).
+    Una consecuencia de emplear la fuerza de Coriolis es que estos giróscopos no registran el ángulo girado sino la \emph{velocidad angular}. Para obtener el ángulo es necesario integrar la medición respecto del tiempo. Los giróscopos responden rápido y con buena precisión en tiempos cortos, y siguen bien los cambios bruscos; pero, al integrar, cualquier error pequeño y constante en la velocidad (\textit{bias}) se acumula y el ángulo deriva (\textit{drift}). Con un \textit{bias} $b$, el error del ángulo crece linealmente con el tiempo:
+    \begin{equation}
+    \theta(t) = \int_0^t \omega\,dt \quad\Rightarrow\quad \theta_{\text{error}}(t) = b\,t.
+    \end{equation}
+    Por ejemplo, con $b = \SI{0.01}{\radian\per\second} \approx \SI{0.57}{\degree\per\second}$, que es el orden de \textit{bias} esperado para este sensor según el plan de pruebas (no un valor medido), el ángulo se desvía unos \SI{34}{\degree} en un minuto. Por eso el \textit{bias} se mide al encender y se resta (sección~\ref{sec:fusion}), y el error residual lo corrige el acelerómetro.
 
     \item \textbf{Acelerómetro:}
 
@@ -129,7 +133,7 @@ El guante se alimenta por el conector USB del ESP32 desde la computadora, la mis
     \end{figure}
 \end{itemize}
 
-El MPU6050 integra un acelerómetro y un giróscopo de tres ejes cada uno; es una unidad de medición inercial (IMU) de 6 grados de libertad. La orientación se describe con los ángulos de Tait-Bryan: rotaciones en torno al eje X (\textit{roll}), al eje Y (\textit{pitch}) y al eje Z (\textit{yaw}) (figura~\ref{fig:rotaciones}). En este proyecto se utilizan el \textit{pitch}, que corresponde a la flexión de la muñeca hacia arriba y abajo, y el \textit{roll}, que corresponde a la rotación de la mano. El \textit{yaw} no puede obtenerse del acelerómetro (la gravedad no cambia al girar alrededor del eje vertical) y no se utiliza.
+El MPU6050 integra un acelerómetro y un giróscopo de tres ejes cada uno; es una unidad de medición inercial (IMU) de 6 grados de libertad. Cada eje entrega un valor de 16 bits, y el ESP32 lee los 14 bytes de una medición completa por I\textsuperscript{2}C. Con los rangos configurados en este proyecto, las sensibilidades de la hoja de datos son 65,5~LSB/(\si{\degree\per\second}) para el giróscopo ($\pm\SI{500}{\degree\per\second}$) y 16384~LSB/$g$ para el acelerómetro ($\pm 2\,g$). La orientación se describe con los ángulos de Tait-Bryan: rotaciones en torno al eje X (\textit{roll}), al eje Y (\textit{pitch}) y al eje Z (\textit{yaw}) (figura~\ref{fig:rotaciones}). En este proyecto se utilizan el \textit{pitch}, que corresponde a la flexión de la muñeca hacia arriba y abajo, y el \textit{roll}, que corresponde a la rotación de la mano. El \textit{yaw} no puede obtenerse del acelerómetro (la gravedad no cambia al girar alrededor del eje vertical) y no se utiliza.
 
 \begin{figure}[H]
     \begin{center}
@@ -160,7 +164,7 @@ Al encender, la función \texttt{setup()} ejecuta los siguientes pasos:
 
 \subsubsection{Ciclo periódico}
 
-La tarea \texttt{tareaTransmision} se ejecuta cada \SI{20}{\milli\second} (\SI{50}{\hertz}) mediante \texttt{vTaskDelayUntil()}, que mide el período desde el despertar anterior y no desde el final del trabajo \cite{freertos}. A diferencia de un \texttt{delay(20)} al final del bucle, el período no se alarga con el tiempo de cómputo. La figura~\ref{fig:ciclo_tx} muestra el orden de cada ciclo.
+La tarea \texttt{tareaTransmision} se ejecuta cada \SI{20}{\milli\second} (\SI{50}{\hertz}) mediante \texttt{vTaskDelayUntil()}, que mide el período desde el despertar anterior y no desde el final del trabajo \cite{freertos}. A diferencia de un \texttt{delay(20)} al final del bucle, el período no se alarga con el tiempo de cómputo: la tarea despierta en instantes absolutos (0, 20, \SI{40}{\milli\second}, etc.). Si un ciclo excediera los \SI{20}{\milli\second}, \texttt{vTaskDelayUntil()} no esperaría y el ciclo siguiente arrancaría enseguida, de modo que la grilla de tiempos se mantiene y el atraso no se acumula. La figura~\ref{fig:ciclo_tx} muestra el orden de cada ciclo.
 
 \begin{figure}[H]
 \centering
