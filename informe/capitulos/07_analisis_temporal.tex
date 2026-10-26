@@ -15,6 +15,7 @@ Lectura de dedos, cálculo y empaquetado & $\approx\SI{5}{\milli\second}$ & Sobr
 Transmisión ESP-NOW & $\approx$ 1--\SI{6}{\milli\second} & Valores típicos reportados \cite{espnow_faq, espnow_issue115} \\
 Tarea de control del receptor & $<\SI{1}{\milli\second}$ & Despierta al llegar el paquete \\
 Siguiente pulso PWM del servo & 0--\SI{20}{\milli\second} (media 10) & PWM de \SI{50}{\hertz} \\
+Limitador de velocidad del receptor & 0--$\approx$\SI{160}{\milli\second} & \SI{8}{\degree} por ciclo en los dedos (tabla~\ref{tab:param_rx}): 0 para cambios chicos, unos 8 ciclos para un recorrido completo \\
 Movimiento mecánico & según amplitud & $\approx\SI{0.1}{\second}$ cada \SI{60}{\degree} (SG90 sin carga) \\
 \bottomrule
 \end{tabularx}
@@ -22,6 +23,8 @@ Movimiento mecánico & según amplitud & $\approx\SI{0.1}{\second}$ cada \SI{60}
 \label{tab:latencia}
 \end{table}
 
-En promedio, la orden llega al servo unos \SI{30}{\milli\second} después del movimiento del operador, a lo que se suma el tiempo que tarda el servo en recorrer el ángulo. Para medir la latencia real de punta a punta se propone conmutar un pin de salida en cada extremo (al leer el sensor en el transmisor y al escribir el servo en el receptor) y observar ambas señales con un osciloscopio, o incluir una marca de tiempo del transmisor dentro del paquete.
+En promedio, la orden llega al servo unos \SI{30}{\milli\second} después del movimiento del operador. Ante cambios grandes se suma el limitador de velocidad, que reparte el movimiento en varios ciclos, y luego el tiempo que tarda el servo en recorrer el ángulo.
 
-\pendiente{La medición de la latencia real todavía no se realizó. Es el siguiente paso, y con ella se confirmará o corregirá esta estimación.}
+Para medir la latencia real se preparó un ensayo de punta a punta sobre el camino de los dedos (procedimiento en \texttt{docs/\allowbreak pruebas/\allowbreak PRUEBA\_LATENCIA.md}). El receptor reemplaza al potenciómetro del índice: aplica un escalón de tensión en la entrada del transmisor (GPIO 34) y mide, con su propio reloj, el tiempo hasta el fin del primer pulso PWM con el ancho nuevo en la salida del servo del índice. Como el inicio y el fin se toman en la misma placa, no hace falta sincronizar relojes. La medición incluye la espera al ciclo del transmisor, la lectura y el envío, la recepción, la tarea de control y la espera al pulso PWM; no incluye el movimiento mecánico ni el filtro interno del MPU6050.
+
+\pendiente{Faltan los resultados de este ensayo: con ellos se confirmará o corregirá esta estimación.}

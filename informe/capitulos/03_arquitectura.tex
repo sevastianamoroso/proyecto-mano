@@ -61,7 +61,7 @@ Receptor & \texttt{tareaControlActuadores} & 1 & 3 & Supervisión del enlace, tr
 \paragraph{Recorrido de un dato.} Un dato atraviesa el sistema en este orden:
 \begin{enumerate}
     \item En el transmisor, núcleo 1: \texttt{tareaTransmision} lee la IMU y aplica el filtro, lee los cinco potenciómetros, arma el paquete con su suma de verificación y llama a \texttt{esp\_now\_send()}.
-    \item La pila Wi-Fi, en el núcleo 0, copia el paquete y lo transmite. Al recibir la confirmación (ACK) llama a \texttt{OnDataSent}.
+    \item La pila Wi-Fi, en el núcleo 0, copia el paquete y lo transmite. Al terminar el envío, con la confirmación (ACK) del receptor o sin ella después de los reintentos, llama a \texttt{OnDataSent}.
     \item En el receptor, núcleo 0: \texttt{OnDataRecv} valida el paquete y lo escribe en la cola.
     \item En el receptor, núcleo 1: \texttt{tareaControlActuadores} despierta al llegar el paquete, aplica el \textit{failsafe}, el limitador de velocidad y la banda muerta, y escribe los servos.
 \end{enumerate}
