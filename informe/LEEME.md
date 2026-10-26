@@ -33,14 +33,14 @@ Para subirlo: comprimir `main.tex`, `capitulos/`, `Imagenes/`, `bib/` y `bst/` y
 | `capitulos/04_transmisor.tex` | Guante: mecánica, conexionado, IMU, firmware (dedos, filtro complementario, mapeo) |
 | `capitulos/05_receptor.tex` | Mano: mecánica, alimentación, firmware (cola, máquina de estados, slew-rate, banda muerta) |
 | `capitulos/06_evolucion.tex` | Evolución preliminar → v1.0.0 (Kalman) → v2.3.0 |
-| `capitulos/07_analisis_temporal.tex` | Estimación de latencia |
-| `capitulos/08_pruebas.tex` | Pruebas: firmware preliminar (antecedente) y alimentación del receptor medida con la v2.3.0 |
-| `capitulos/09_conclusiones.tex` | Conclusiones (borrador) y trabajo futuro |
+| `capitulos/07_analisis_temporal.tex` | Estimación y medición de la latencia |
+| `capitulos/08_pruebas.tex` | Pruebas: firmware preliminar (antecedente), respuesta del sistema y alimentación del receptor con la v2.3.0 |
+| `capitulos/09_conclusiones.tex` | Conclusiones y trabajo futuro |
 | `capitulos/A_ajuste_parametros.tex` | Apéndice: guía de ajuste de parámetros |
 | `capitulos/B_estructura_firmware.tex` | Apéndice: estructura del firmware (diagramas tipo clases) |
-| `borradores/diagrama_firmware.tex` | Versión independiente del apéndice B (ya incorporado; editar el apéndice) |
+| `capitulos/C_filtro_kalman.tex` | Apéndice: filtro de Kalman de la versión 1.0.0 |
+| `presentacion/presentacion.tex` | Presentación de la defensa (Beamer) |
 | `bib/IEEEreferencias.bib` | Referencias (estilo IEEE) |
-| `referencia/` | `main.tex` original y PDF del informe preliminar, sólo como referencia |
 
 ## Pendientes
 

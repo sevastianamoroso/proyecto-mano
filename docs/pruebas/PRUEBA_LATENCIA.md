@@ -4,7 +4,7 @@ Archivos:
 - **Receptor:** `Receptor_Latencia/Receptor_Latencia.ino`. Es `Receptor.ino` con agregados marcados `[LATENCIA]`.
 - **Transmisor:** `Transmisor/Transmisor.ino`, el firmware normal, sin cambios.
 - **Análisis:** `docs/pruebas/matlab/latencia_punta_a_punta.m`.
-- **Método anterior (v1)**, guardado como referencia: `docs/pruebas/latencia_v1/`.
+- **Resultados (2026-10-26):** `docs/pruebas/evidencia/2026-10-26_latencia/` y prueba P11 de `REGISTRO_PRUEBAS.md`.
 
 ## 1. Qué mide
 

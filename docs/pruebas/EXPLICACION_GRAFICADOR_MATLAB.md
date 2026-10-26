@@ -10,7 +10,7 @@ intenta bajar DTR y RTS para evitar que el monitor afecte a las placas.
 
 ## Telemetría a 50 Hz
 
-En la rama `exp/medicion-latencia`, al compilar ambos firmwares con
+En el tag `pruebas-2026-10-15` (`git checkout pruebas-2026-10-15`), al compilar ambos firmwares con
 `TELEMETRIA_MATLAB = 1`, las placas envían CSV.
 
 ```text
@@ -47,5 +47,4 @@ USB no equivale al instante en que se transmitió por ESP-NOW: incluye colas del
 serie y la planificación de ambos ESP32. La asociación por secuencia se usa sólo para alinear las
 curvas correctamente.
 
-La latencia física de radio se mide con el mecanismo de GPIO y osciloscopio que ya incluye la rama
-`exp/medicion-latencia`.
+La latencia de punta a punta se midió con otro método: ver `PRUEBA_LATENCIA.md` (prueba P11).

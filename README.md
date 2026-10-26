@@ -12,11 +12,11 @@ Un guante transmisor (5 potenciómetros + MPU6050) comanda por ESP-NOW una mano 
 |---|---|
 | `Transmisor/` | Firmware del guante (`Transmisor.ino`), protocolo y diagrama de conexionado |
 | `Receptor/` | Firmware de la mano (`Receptor.ino`), protocolo y diagrama de conexionado |
+| `Receptor_Latencia/` | Receptor con la medición de latencia de punta a punta (prueba P11) |
 | `docs/pruebas/` | Plan de pruebas, registro de resultados y backlog de mejoras |
 | `EXPLICACION_CODIGO.md` | Explicación detallada del firmware v2.3.0, módulo por módulo, con la evolución desde la v1.0.0 |
 | `docs/DIAGRAMAS.md` | Funcionamiento en diagramas (Mermaid) |
 | `docs/aprendizaje/` | Guía de estudio para la defensa: FreeRTOS, ESP-NOW y el porqué de cada parte del código, con preguntas de práctica |
-| `MEJORAS_HARDWARE_Y_FIRMWARE.md` | Notas de mejoras de hardware y firmware |
 | `informe/` | Informe final en LaTeX (proyecto de Overleaf). Ver [`informe/LEEME.md`](informe/LEEME.md) |
 
 ## Versiones

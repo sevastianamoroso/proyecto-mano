@@ -53,7 +53,6 @@ guante; la mano no se toca.
 | `Transmisor/Transmisor.ino` | Firmware del guante |
 | `Receptor/Receptor.ino` | Firmware de la mano |
 | `Transmisor/ProtocoloBrazo.h` y `Receptor/ProtocoloBrazo.h` | Definición del paquete y del checksum. **Son dos copias idénticas** (el IDE de Arduino sólo compila archivos de la carpeta del sketch) y deben mantenerse iguales |
-| `Transmisor/KalmanFilter.h` | Filtro de Kalman de la `v1.0.0`. **Ya no se usa** desde la `v2.0.0`; se conserva como referencia histórica |
 | `*/Conexionado_*.drawio` | Diagramas de conexionado eléctrico |
 
 ### 2.2. Librerías

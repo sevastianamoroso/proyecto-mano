@@ -1,7 +1,7 @@
 # Registro de pruebas
 
 Una fila por prueba ejecutada. IDs según [`PLAN_PRUEBAS.md`](PLAN_PRUEBAS.md).
-IDs P01–P16 según `PLAN_LABORATORIO.md` (rama `exp/medicion-latencia`); evidencia en [`evidencia/`](evidencia/).
+IDs P01–P16 según `PLAN_LABORATORIO.md` (tag `pruebas-2026-10-15`); evidencia en [`evidencia/`](evidencia/).
 Resultado: ✅ cumple · ⚠️ cumple con observaciones · ❌ no cumple.
 
 | Fecha | ID | Versión Tx | Versión Rx | Resultado | Valores medidos / observaciones |
