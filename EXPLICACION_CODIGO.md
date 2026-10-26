@@ -81,12 +81,13 @@ guante; la mano no se toca.
 
 | Servo | GPIO |
 |---|---|
-| Pulgar, Índice, Medio, Anular, Meñique | 25, 26, 27, 12, 13 |
+| Pulgar, Índice, Medio, Anular, Meñique | 25, 26, 27, 23, 13 |
 | Muñeca vertical / Muñeca rotacional | 32 / 33 |
 
-> Nota de hardware: el GPIO 12 es un pin de *strapping* del ESP32 (define la tensión de la flash al
-> arrancar). Si el servo lo mantuviera en alto durante el reset la placa podría no arrancar. En las pruebas
-> no causó problemas, pero conviene tenerlo presente si aparece un fallo de arranque.
+> Nota de hardware: el anular estaba originalmente en el GPIO 12, un pin de *strapping* del ESP32 (define
+> la tensión de la flash al arrancar). En las pruebas el dedo funcionaba pero se movía con dificultad; el
+> mismo servo conectado al GPIO 13 o al GPIO 23 respondió mucho mejor, así que se pasó al **GPIO 23**, que
+> no es de *strapping* ni emite pulsos durante el arranque.
 
 ---
 

@@ -102,7 +102,7 @@ La tabla~\ref{tab:pines_rx} indica el pin asignado a cada servo. Se eligieron lo
 \textbf{Servo} & \textbf{GPIO} \\
 \midrule
 Pulgar, índice, medio & 25, 26, 27 \\
-Anular, meñique & 12, 13 \\
+Anular, meñique & 23, 13 \\
 Muñeca vertical & 32 \\
 Muñeca rotacional & 33 \\
 \bottomrule
@@ -111,7 +111,7 @@ Muñeca rotacional & 33 \\
 \label{tab:pines_rx}
 \end{table}
 
-El GPIO 12 es un pin de configuración de arranque (\textit{strapping}) del ESP32, que define la tensión de la memoria flash al iniciar \cite{esp32_datasheet}. Si se mantuviera en nivel alto durante el reinicio, la placa podría no arrancar. En las pruebas no causó inconvenientes, pero debe tenerse en cuenta ante una falla de arranque.
+En un principio el servo del anular se conectó al GPIO 12, que es un pin de configuración de arranque (\textit{strapping}) del ESP32: define la tensión de la memoria flash al iniciar \cite{esp32_datasheet}. En las pruebas el dedo funcionaba, pero se movía con dificultad. Al conectar el mismo servo al GPIO 13 y luego al GPIO 23 respondió mucho mejor, por lo que la falla seguía al pin y no al servo ni a la mecánica. Se reasignó al GPIO 23, que no es de \textit{strapping} ni emite pulsos durante el arranque.
 
 \begin{figure}[H]
     \begin{center}

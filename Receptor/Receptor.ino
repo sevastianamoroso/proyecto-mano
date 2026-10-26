@@ -26,7 +26,7 @@
 const int PIN_SERVO_PULGAR        = 25;
 const int PIN_SERVO_INDICE        = 26;
 const int PIN_SERVO_MEDIO         = 27;
-const int PIN_SERVO_ANULAR        = 12;
+const int PIN_SERVO_ANULAR        = 23; // Antes GPIO 12 (strapping): el dedo se movía con dificultad
 const int PIN_SERVO_MENIQUE       = 13;
 const int PIN_SERVO_MUNIECA_VERT  = 32;
 const int PIN_SERVO_MUNIECA_ROT   = 33;
