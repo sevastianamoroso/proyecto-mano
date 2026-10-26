@@ -90,7 +90,7 @@ Propuesta, que dejaría el capítulo en unas 50 líneas:
   listado van a un apéndice o se eliminan.
 - **v2.0 a v2.3:** dos o tres líneas cada una.
 
-- [ ] Falta preguntar al usuario: las ecuaciones y el código del Kalman, ¿van a un apéndice o se eliminan?
+- Decidido el 2026-10-26: las ecuaciones y el código del Kalman van a un apéndice (C).
 - [ ] Revisar las referencias cruzadas (`\ref`) que apuntan a las subsecciones que se eliminen.
 
 ## 4. Guía de estudio (`docs/aprendizaje/`)
