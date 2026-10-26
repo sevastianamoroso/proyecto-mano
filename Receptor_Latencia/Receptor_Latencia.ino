@@ -22,7 +22,8 @@
  *      final_us:   escalón -> fin del primer pulso con el ancho final (incluye el slew-rate)
  *    T,n,nivel,etapa   si el ensayo no terminó en 1 s (etapa 0: no llegó el paquete,
  *                      1: llegó pero el PWM no cambió, 2: el PWM no se estabilizó)
- * Comandos por el monitor serie: 's' resumen, 'r' borrar estadísticas, 'p' pausar/reanudar.
+ * Comandos por el monitor serie: 's' resumen, 'r' borrar estadísticas, 'p' pausar/reanudar,
+ * 'g' alternar la salida para el Serial Plotter (latencia de cada ensayo y media acumulada).
  */
 
 #include <Arduino.h>
@@ -64,6 +65,9 @@ volatile uint16_t valorDedoAntes   = 0;
 volatile bool     llegoEscalon     = false;
 volatile uint32_t llegadaUs        = 0;
 volatile uint8_t  secuenciaLlegada = 0;
+
+// 'g': salida para el Serial Plotter (solo latencia y media, sin telemetría ni CSV)
+volatile bool modoPlotter = false;
 
 // El pulso alto dura 0,5–2,4 ms y el bajo más de 17 ms: un intervalo corto entre flancos
 // es un pulso que acaba de terminar. Así no hace falta leer el nivel del pin.
@@ -420,7 +424,7 @@ void tareaControlActuadores(void* pvParameters) {
         }
 
         // 5. TELEMETRÍA SERIAL NO BLOQUEANTE (5 Hz)
-        if (++ticksTelemetria >= 10) {
+        if (++ticksTelemetria >= 10 && !modoPlotter) {
             ticksTelemetria = 0;
             const char* strEstado = (estadoActual == ESTADO_OPERACION_NORMAL) ? "OK" :
                                     (estadoActual == ESTADO_FAILSAFE_SIN_SENAL) ? "FAILSAFE" : "SYNC_WAIT";
@@ -464,6 +468,7 @@ uint32_t perdidosEnsayo = 0;
 // Resumen
 uint32_t muestrasPrimer[MAX_MUESTRAS];
 uint32_t cantMuestras = 0, cantTimeouts = 0;
+uint64_t sumaPrimer = 0;
 
 int compararU32(const void* a, const void* b) {
     uint32_t x = *(const uint32_t*)a, y = *(const uint32_t*)b;
@@ -499,8 +504,9 @@ void loop() {
     if (Serial.available() > 0) {
         char cmd = Serial.read();
         if (cmd == 's' || cmd == 'S') imprimirResumen();
-        if (cmd == 'r' || cmd == 'R') { cantMuestras = 0; cantTimeouts = 0; Serial.println("[RESUMEN] Borrado"); }
+        if (cmd == 'r' || cmd == 'R') { cantMuestras = 0; cantTimeouts = 0; sumaPrimer = 0; Serial.println("[RESUMEN] Borrado"); }
         if (cmd == 'p' || cmd == 'P') { pausado = !pausado; Serial.println(pausado ? "[LATENCIA] Pausa" : "[LATENCIA] Sigue"); }
+        if (cmd == 'g' || cmd == 'G') modoPlotter = !modoPlotter;
     }
 
     // Copia atómica de lo que dejaron la ISR y el callback
@@ -533,17 +539,25 @@ void loop() {
             }
             if (primerVisto && pulsosIguales >= PULSOS_QUIETO && (int32_t)(inicioIgualesUs - t0Us) > 0) {
                 uint32_t finalUs = inicioIgualesUs - t0Us;
-                Serial.printf("L,%u,%d,%u,%lu,%lu,%lu,%u\n", numeroEnsayo, nivelEstimulo ? 1 : 0, seq,
-                              llego ? (unsigned long)(llegada - t0Us) : 0UL,
-                              (unsigned long)primerUs, (unsigned long)finalUs, perdidosEnsayo);
-                if (cantMuestras < MAX_MUESTRAS) muestrasPrimer[cantMuestras++] = primerUs;
+                if (cantMuestras < MAX_MUESTRAS) {
+                    muestrasPrimer[cantMuestras++] = primerUs;
+                    sumaPrimer += primerUs;
+                }
+                if (modoPlotter) {
+                    Serial.printf("latencia_ms:%.2f media_ms:%.2f\n", primerUs / 1000.0,
+                                  sumaPrimer / 1000.0 / cantMuestras);
+                } else {
+                    Serial.printf("L,%u,%d,%u,%lu,%lu,%lu,%u\n", numeroEnsayo, nivelEstimulo ? 1 : 0, seq,
+                                  llego ? (unsigned long)(llegada - t0Us) : 0UL,
+                                  (unsigned long)primerUs, (unsigned long)finalUs, perdidosEnsayo);
+                }
                 terminarEnsayo();
             }
         }
     }
 
     if (estadoEnsayo == ENSAYO_MIDIENDO && millis() - t0Ms > TIMEOUT_ENSAYO_MS) {
-        Serial.printf("T,%u,%d,%d\n", numeroEnsayo, nivelEstimulo ? 1 : 0, !llego ? 0 : (!primerVisto ? 1 : 2));
+        if (!modoPlotter) Serial.printf("T,%u,%d,%d\n", numeroEnsayo, nivelEstimulo ? 1 : 0, !llego ? 0 : (!primerVisto ? 1 : 2));
         cantTimeouts++;
         terminarEnsayo();
     }
