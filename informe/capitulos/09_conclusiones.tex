@@ -1,8 +1,6 @@
 \section{Conclusiones}
 \label{sec:conclusiones}
 
-\pendiente{Estas conclusiones todavía no incluyen las pruebas de deriva y retorno de la muñeca con la versión actual: son el siguiente paso y se incorporarán una vez realizadas.}
-
 Se desarrolló un sistema de telerobótica de bajo costo en el que un guante con sensores comanda una mano impresa en 3D por medio de un enlace inalámbrico ESP-NOW. El sistema replica la flexión de los cinco dedos y dos grados de libertad de la muñeca (desplazamiento vertical y rotación), con un firmware sobre FreeRTOS en cada nodo.
 
 Los principales resultados y aprendizajes del proyecto son:
@@ -21,6 +19,7 @@ Entre las limitaciones del sistema actual se encuentran la falta de realimentaci
 
 \begin{itemize}
     \item \textbf{Mediciones exhaustivas de la latencia} (sección~\ref{sec:latencia}): su distribución completa (máximos y percentiles), su variación con la distancia, los obstáculos y la interferencia, y el camino de la muñeca, que incluye el filtro interno del MPU6050.
+    \item \textbf{Caracterizar la muñeca en reposo} con la versión actual: ruido, deriva a largo plazo y repetibilidad al volver a una misma postura.
     \item \textbf{Aumentar las frecuencias de trabajo y evaluar la respuesta de los servos.} Por un lado, subir la tasa de envío a \SI{100}{\hertz}; como el limitador de velocidad actúa por iteración, en ese caso debería escalarse con el tiempo real entre iteraciones para que la velocidad máxima no se duplique. Por otro, probar un PWM de \SIrange{100}{200}{\hertz} en los MG946R, para los que el fabricante sólo especifica \SI{50}{\hertz}, vigilando la temperatura y el comportamiento de los servos.
     \item \textbf{Investigar otras mejoras posibles} a partir de los resultados de estas pruebas.
 \end{itemize}

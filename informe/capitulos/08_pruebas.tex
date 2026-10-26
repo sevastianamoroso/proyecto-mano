@@ -3,8 +3,6 @@
 
 Las pruebas se dividen en dos grupos. El primero corresponde a la versión preliminar del firmware (filtros EMA y filtro de Kalman) y se conserva como antecedente, ya que motivó los cambios descriptos en la sección~\ref{sec:evolucion}. El segundo corresponde a las pruebas realizadas con la versión 2.3.0: la respuesta del sistema completo y la alimentación del receptor.
 
-\pendiente{Las mediciones de ruido y deriva de la muñeca en reposo y la prueba de retorno a la posición todavía no se repitieron con la versión actual. Son el siguiente paso para confirmar el comportamiento del filtro complementario.}
-
 \subsection{Versión preliminar del firmware}
 \label{sec:pruebas_preliminar}
 
@@ -131,7 +129,7 @@ Los valores \textit{mean}, \textit{min} y \textit{max} que muestra el osciloscop
  \label{fig:carga}
 \end{figure}
 
-\paragraph{Tensión de salida.} La línea de \SI{5}{\volt} de los servos se mantuvo entre \SI{5.14}{\volt} y \SI{5.25}{\volt} (valor eficaz) durante la medición, con variaciones de unos \SI{0.76}{\volt} pico a pico en la captura de la figura~\ref{fig:v5}.
+\paragraph{Tensión de salida.} El valor eficaz de la línea de \SI{5}{\volt} de los servos se mantuvo entre \SI{5.14}{\volt} y \SI{5.25}{\volt} en 57 adquisiciones, con un desvío de \SI{16}{\milli\volt} (figura~\ref{fig:v5}). En la traza se ven ondulaciones breves de algunas décimas de volt; con la escala de \SI{1}{\volt}/div utilizada no es posible resolver el rizado con más detalle, y el parámetro de amplitud del osciloscopio no es confiable en esas condiciones, por lo que se toma como referencia el valor eficaz.
 
 \begin{figure}[H]
     \centering
@@ -140,4 +138,4 @@ Los valores \textit{mean}, \textit{min} y \textit{max} que muestra el osciloscop
     \label{fig:v5}
 \end{figure}
 
-\paragraph{Conclusiones de las mediciones.} El consumo del receptor queda muy por debajo de la capacidad de la fuente (\SI{4}{\ampere}) y del regulador (\SI{3}{\ampere} a la salida): aun en el peor caso registrado, la corriente de entrada no superó los \SI{0.75}{\ampere} a \SI{12}{\volt}. Los picos de bloqueo de los MG946R estimados en la sección~\ref{sec:alimentacion} con las hojas de datos no se presentaron en el uso normal, lo que es coherente con la acción del limitador de velocidad, aunque no se midió el consumo sin él. La línea de \SI{5}{\volt} también se observó con la mano en movimiento y su variación fue casi imperceptible, por lo que los picos de corriente no comprometen la alimentación de los servos. No se midió la corriente media en movimiento continuo durante un tiempo prolongado.
+\paragraph{Conclusiones de las mediciones.} El consumo del receptor queda muy por debajo de la capacidad de la fuente (\SI{4}{\ampere}) y del regulador (\SI{3}{\ampere} a la salida): aun en el peor caso registrado, la corriente de entrada no superó los \SI{0.75}{\ampere} a \SI{12}{\volt}. Los picos de bloqueo de los MG946R estimados en la sección~\ref{sec:alimentacion} con las hojas de datos no se presentaron en el uso normal, lo que es coherente con la acción del limitador de velocidad, aunque no se midió el consumo sin él. La línea de \SI{5}{\volt} también se observó con la mano en movimiento y su valor casi no varió, por lo que los picos de corriente no comprometen la alimentación de los servos. No se midió la corriente media en movimiento continuo durante un tiempo prolongado.

@@ -56,6 +56,13 @@ Todo commiteado en `docs/presentacion`. **Por decidir:** llevarlo a `main` antes
 - Observación sin resolver: el campo `final_us` (~310 ms) es mayor que lo que da el limitador según el código (~160 ms).
   No afecta a la latencia informada.
 
+## 1b. Otras decisiones del 2026-10-26
+
+- **Deriva y retorno de la muñeca (B1/B2/P13): no se hacen.** Decisión del usuario; quedó como trabajo futuro en el
+  cap. 9 y se quitaron sus `\pendiente` (cap. 8 y 9) y la fila de la diapositiva de resumen.
+- **5 V:** el "0,76 V pico a pico" era el parámetro `ampl` del LeCroy (no confiable a 1 V/div; su máximo fue 4,32 V).
+  El cap. 8 ahora usa el RMS: 5,14–5,25 V en 57 adquisiciones, desvío 16 mV.
+
 ## 2. Comentario del profesor: figuras de señales poco legibles
 
 | Figuras | Por qué cuesta leerlas | Arreglo propuesto |
