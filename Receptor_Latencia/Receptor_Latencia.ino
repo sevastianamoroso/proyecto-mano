@@ -424,11 +424,13 @@ void tareaControlActuadores(void* pvParameters) {
             ticksTelemetria = 0;
             const char* strEstado = (estadoActual == ESTADO_OPERACION_NORMAL) ? "OK" :
                                     (estadoActual == ESTADO_FAILSAFE_SIN_SENAL) ? "FAILSAFE" : "SYNC_WAIT";
-            Serial.printf("[RX %s] D1:%.1f D2:%.1f D3:%.1f D4:%.1f D5:%.1f | Mñc:[V:%.1f, R:%.1f]\n",
+            // [LATENCIA] Pulsos vistos en el GPIO 4: si no aumentan (~50/s), el puente desde el GPIO 26 no llega
+            Serial.printf("[RX %s] D1:%.1f D2:%.1f D3:%.1f D4:%.1f D5:%.1f | Mñc:[V:%.1f, R:%.1f] | GPIO%d: %u pulsos, %u us\n",
                           strEstado,
                           posActualDedos[0], posActualDedos[1], posActualDedos[2],
                           posActualDedos[3], posActualDedos[4],
-                          posActualMuniecaVert, posActualMuniecaRot);
+                          posActualMuniecaVert, posActualMuniecaRot,
+                          PIN_CAPTURA_PWM, contadorPulsos, anchoPulsoUs);
         }
     }
 }
