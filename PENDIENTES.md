@@ -63,17 +63,15 @@ Todo commiteado en `docs/presentacion`. **Por decidir:** llevarlo a `main` antes
 - **5 V:** el "0,76 V pico a pico" era el parámetro `ampl` del LeCroy (no confiable a 1 V/div; su máximo fue 4,32 V).
   El cap. 8 ahora usa el RMS: 5,14–5,25 V en 57 adquisiciones, desvío 16 mV.
 
-## 2. Comentario del profesor: figuras de señales poco legibles
+## 2. Comentario del profesor: figuras de señales poco legibles — hecho el 2026-10-26
 
-| Figuras | Por qué cuesta leerlas | Arreglo propuesto |
-|---|---|---|
-| Serial Plotter: `Pitch_*`, `Roll_*`, `Pote_*`, `Transmicion_*` (cap. 8) | Líneas finas de color pastel sobre blanco, letra chica, *Interpolate* activado, a 0,45 del ancho de página | Lo ideal es regraficarlas en MATLAB desde los datos. Si no están, una figura por fila y oscurecer las líneas con un script |
-| Osciloscopio: `Mediciones/P02_*`, `P03_*` | Traza amarilla sobre fondo blanco: casi no hay contraste | Recolorear el amarillo a azul oscuro con un script (sólo cambia el color) o exportar de nuevo desde el LeCroy |
-| MATLAB: `Mediciones/P16_*` | Seis entradas grises de la leyenda sin usar; el factor ×10⁵ del eje quedó fuera de la captura | Exportar de nuevo mostrando sólo la señal graficada, con el eje en segundos |
-
-- [ ] Falta preguntar al usuario: ¿hay datos crudos (CSV o texto del monitor serie) de las capturas del
-  Serial Plotter?
-- [ ] Guardar los originales antes de tocar cualquier imagen.
+- Sin datos crudos de las capturas: se engrosaron y oscurecieron las trazas con un script (sólo los píxeles de color de
+  la zona del gráfico; grilla, texto y leyendas intactos) en las 10 del Serial Plotter (cap. 8.1) y las 5 del
+  osciloscopio (P02/P03). En las P16 se recortó la leyenda con entradas sin usar. Los originales quedan en git (antes
+  de este commit) y en `docs/pruebas/evidencia/2026-10-15/`.
+- Las leyendas de las figuras del cap. 8.1 ahora dicen las unidades de los ejes.
+- Sin resolver: los números de los ejes del Serial Plotter siguen chicos a ese ancho, y el ×10⁵ de las P16 sigue
+  explicado sólo en el texto.
 
 ## 3. Comentario del profesor: resumir la evolución de versiones — hecho el 2026-10-26
 

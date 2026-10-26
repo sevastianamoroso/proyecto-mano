@@ -14,7 +14,7 @@ Se analizó la utilidad de los filtros para cada medición realizada en el ESP32
     \includegraphics[width=0.45\textwidth]{Pitch_Ruido_Sin_Movimiento.png}}
   \subfigure[\textit{Pitch} con movimiento]{
     \includegraphics[width=0.45\textwidth]{Pitch_Ruido_Con_Movimiento.png}}
- \caption{Medición de \textit{pitch}.}
+ \caption{Medición de \textit{pitch}: lectura cruda y filtrada con Kalman (versión preliminar). Eje vertical: ángulo en grados; eje horizontal: número de muestra.}
  \label{f:Ruido_Pitch}
 \end{figure}
 
@@ -26,7 +26,7 @@ y para el \textit{roll} se observa:
     \includegraphics[width=0.45\textwidth]{Roll_Ruido_Sin_Movimiento.png}}
   \subfigure[\textit{Roll} con movimiento]{
     \includegraphics[width=0.45\textwidth]{Roll_Ruido_Con_Movimiento.png}}
- \caption{Medición de \textit{roll}.}
+ \caption{Medición de \textit{roll}: lectura cruda y filtrada con Kalman (versión preliminar). Eje vertical: ángulo en grados; eje horizontal: número de muestra.}
  \label{f:Ruido_Roll}
 \end{figure}
 
@@ -38,7 +38,7 @@ Luego se analizó el comportamiento de los potenciómetros, comparando los datos
     \includegraphics[width=0.45\textwidth]{Pote_Ruido.png}}
   \subfigure[Cambio brusco]{
     \includegraphics[width=0.45\textwidth]{Pote_Ruido_1.png}}
- \caption{Respuesta de un potenciómetro.}
+ \caption{Respuesta de un potenciómetro: lectura cruda y filtrada con EMA. Eje vertical: cuentas del ADC (0 a 4095); eje horizontal: número de muestra.}
  \label{f:Ruido_Potenciometros}
 \end{figure}
 
@@ -56,7 +56,7 @@ A continuación se observa la respuesta del sistema completo, transmisor y recep
     \includegraphics[width=0.47\textwidth]{Transmicion_3.png}}
   \subfigure[Bajar dedo]{
     \includegraphics[width=0.47\textwidth]{Transmicion_4.png}}
- \caption{Respuesta del sistema.}
+ \caption{Respuesta del sistema en la versión preliminar. Eje vertical: ángulo del servo en grados; eje horizontal: número de muestra.}
  \label{f:Respuesta_Sistema}
 \end{figure}
 
