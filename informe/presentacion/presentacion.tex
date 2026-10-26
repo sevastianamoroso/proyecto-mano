@@ -5,7 +5,7 @@
 
 \usepackage[spanish,es-noshorthands,es-nodecimaldot]{babel}
 \usepackage{fontspec}
-\usepackage{amsmath,amssymb}
+\usepackage{amsmath,amssymb,mathtools}
 \usepackage{booktabs}
 \usepackage{siunitx}
 \sisetup{output-decimal-marker={,}, per-mode=symbol}
@@ -384,7 +384,7 @@
     \node[etiqueta] at (0.1,4.05) {Núcleo 1 · \texttt{tareaTransmision} (prio 2, cada 20 ms)};
     \node[etiqueta] at (0.1,0.9) {Núcleo 0 · tarea Wi-Fi};
     \node[etiqueta] at (10.6,4.05) {Núcleo 1 · \texttt{tareaControlActuadores} (prio 3)};
-    \node[etiqueta] at (10.6,0.9) {Núcleo 0 · tarea Wi-Fi};
+    \node[etiqueta] at (15.6,0.9) {Núcleo 0 · tarea Wi-Fi};
     \node[font=\normalsize\bfseries] at (4.75,4.55) {TRANSMISOR (guante)};
     \node[font=\normalsize\bfseries] at (15.35,4.55) {RECEPTOR (mano)};
     % Transmisor
@@ -410,7 +410,7 @@
     \node[font=\scriptsize, text=tenue, anchor=west] at ([xshift=2mm]cola.east) {sobrescribe / despierta};
     \draw[flecha] (rcv) -- (ctl);
     \draw[flecha] (ctl) -- (pwm);
-    \draw[flecha] (pwm) -- ++(0,-0.95) node[anchor=east, xshift=-1mm, font=\footnotesize]{PWM a los servos};
+    \draw[flecha] (pwm) -- ++(0,-0.95) node[pos=0.5, anchor=west, xshift=1mm, font=\footnotesize]{PWM};
     % Enlace
     \draw[flecha, very thick, draw=celeste, decorate,
           decoration={snake, amplitude=1.2mm, segment length=4mm, post length=3mm}]
@@ -558,8 +558,8 @@ struct MensajeBrazo {
 
 \begin{frame}{Muñeca: filtro complementario}
   \[
-    \theta_k = \alpha\,\underbrace{\left(\theta_{k-1} + \omega_k\,\Delta t\right)}_{\text{giróscopo: pasa-altos}}
-             + (1-\alpha)\,\underbrace{\theta_{acc,k}}_{\text{acelerómetro: pasa-bajos}},
+    \theta_k = \alpha\,\underbrace{\left(\theta_{k-1} + \omega_k\,\Delta t\right)}_{\mathclap{\text{giróscopo: pasa-altos}}}
+             + (1-\alpha)\,\underbrace{\theta_{acc,k}}_{\mathclap{\text{acelerómetro: pasa-bajos}}},
     \qquad \alpha = 0{,}98
   \]
   \[
@@ -665,13 +665,13 @@ struct MensajeBrazo {
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{frame}{Evolución: cada cambio, un problema observado}
   \centering\small
-  \begin{tabular}{l p{6.2cm} p{4.6cm}}
+  \begin{tabular}{l p{6.0cm} p{5.4cm}}
     \toprule
     \textbf{Versión} & \textbf{Cambio} & \textbf{Motivo} \\
     \midrule
     Preliminar & EMA en guante y mano, \texttt{delay(20)}, lecturas crudas & Primera versión funcional \\
     1.0.0 & FreeRTOS, cola, checksum, limitador, NVS, \textbf{Kalman} & Retardo y zumbido \\
-    2.0.0 & \textbf{Filtro complementario}, calibración del giróscopo & Muñeca derivaba ``como un mouse'' \\
+    2.0.0 & \textbf{Filtro complementario}, \textit{bias} del giróscopo & Muñeca derivaba ``como un mouse'' \\
     2.1.0 & Limitador más rápido, inversión de dedos & Respuesta lenta, dedos invertidos \\
     2.2.0 & Receptor actúa al llegar el paquete, DLPF \SI{44}{\hertz} & Reducir latencia \\
     2.3.0 & Sin transmisión durante la calibración & Mano imitaba la calibración \\
@@ -709,12 +709,12 @@ struct MensajeBrazo {
     \end{tabular}\\[0.5ex]
     \small + movimiento mecánico ($\approx\SI{0.1}{\second}$ cada \SI{60}{\degree} en el SG90)
     \column{0.4\textwidth}
-    \textbf{Medición por cable}
+    \textbf{Medición de punta a punta}
     \begin{itemize}\small
-      \item El GPIO 2 del transmisor sube antes de cada envío
-      \item El receptor captura el flanco por interrupción (GPIO 4) y resta ese instante después de escribir los servos
-      \item Ambos tiempos con el reloj del receptor: no hace falta sincronizar las placas
-      \item Mide sólo \textbf{enlace + receptor}
+      \item El receptor aplica un \textbf{escalón} en el GPIO 34 del Tx (en lugar del pote del índice); el Tx corre su firmware normal
+      \item Fin: primer pulso PWM con el ancho nuevo, en la salida real del servo (GPIO 26 $\rightarrow$ GPIO 4)
+      \item Un solo reloj, el del receptor: no hay que sincronizar placas
+      \item Incluye ambas esperas; no el movimiento mecánico
     \end{itemize}
     \vspace{1ex}
     \pendiente{completar con media, máximo e histograma (P11)}
@@ -787,7 +787,7 @@ struct MensajeBrazo {
     Calibración sin transmisión (P09) & La mano va a reposo y se recupera & {\color{verde}\checkmark} \\
     Respuesta del sistema con MATLAB (P16) & Seguimiento en dedos y muñeca & {\color{verde}\checkmark} \\
     \midrule
-    Latencia del enlace (P11) & \pendiente{medición por cable en curso} & \\
+    Latencia de punta a punta (P11) & \pendiente{prueba preparada, falta medir} & \\
     Muñeca: deriva y retorno a la posición (P13) & \pendiente{a realizar} & \\
     Failsafe al apagar el guante (P10) & \pendiente{registrar} & \\
     \bottomrule
@@ -860,7 +860,7 @@ struct MensajeBrazo {
   \end{itemize}
 \end{frame}
 
-\begin{frame}{Respaldo: respuesta del índice y de la muñeca vertical}
+\begin{frame}{Respaldo: índice y muñeca vertical}
   \begin{columns}[T]
     \column{0.5\textwidth}
     \centering\includegraphics[width=\linewidth]{Mediciones/P16_matlab_indice.jpg}\\{\scriptsize Índice: flexiones completas y parciales}

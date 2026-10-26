@@ -121,7 +121,8 @@ usuario.
 - [ ] **MP1584:** nombrarlo y mostrar al menos un parámetro en el informe y en la presentación.
   - El informe (`05_receptor.tex`) ya lo describe y tiene una tabla con sus parámetros.
   - Hecho en la presentación el 2026-10-25: rango de entrada, corriente y frecuencia de conmutación en la
-    diapositiva de alimentación. Falta sólo revisarlo.
+    diapositiva de alimentación. Revisado el 2026-10-26: coincide con la hoja de datos (4,5–28 V, 3 A,
+    100 kHz–1,5 MHz).
 - [ ] **IMU:** explicar la deriva del giróscopo y qué aporta cada sensor a la medida:
   - el giróscopo responde rápido pero deriva al integrar;
   - el acelerómetro es absoluto (referencia: la gravedad) pero ruidoso ante el movimiento;
@@ -150,6 +151,13 @@ usuario.
 - [x] **Corregido de paso:** la diapositiva de latencia decía GPIO23 → GPIO34 para la medición por cable;
   el código usa GPIO 2 (TX) → GPIO 4 (RX).
 - [ ] Revisar la presentación completa en el proyector o a pantalla completa.
+- Revisión del 2026-10-26 (compilada y vista página por página):
+  - La diapositiva "Latencia" describía el método v1 (GPIO 2 → GPIO 4, sólo enlace y receptor); ahora
+    describe el v2. En "Resumen de pruebas", P11 pasó a "Latencia de punta a punta".
+  - Arreglos visuales: espacios en la ecuación del complementario, etiqueta tapada por una flecha en
+    "Recorrido de un dato", cortes de palabra en la tabla de "Evolución", título largo de un respaldo.
+  - [ ] Sigue pendiente el video de respaldo de la demo (diapositiva 4).
+  - [ ] Cuando haya resultados de latencia, reemplazar los `\pendiente` de las diapositivas 21 y 24.
 
 ### Código
 - [ ] **Comentarios:** reescribirlos para que suenen más naturales y humanos en `Transmisor.ino`,
