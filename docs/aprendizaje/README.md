@@ -54,3 +54,18 @@ corta. Conviene taparlas y tratar de responder primero.
 | **Failsafe** | Comportamiento seguro por defecto cuando algo falla (acá: ir a Home) |
 | **Slew-rate** | Límite de velocidad de cambio: cuántos grados puede avanzar un servo por ciclo |
 | **Deadband** | Banda muerta: errores menores a cierto umbral se ignoran para evitar vibración |
+
+## Datos verificados (2026-10-26)
+
+Contra el core Arduino-ESP32 2.0.17 y ESP-IDF 4.4.7, que es lo que usa el proyecto:
+
+| Dato | Fuente |
+|---|---|
+| Tick de 1 ms (`CONFIG_FREERTOS_HZ = 1000`) | `tools/sdk/esp32/sdkconfig` del core |
+| `loopTask` con prioridad 1 en el núcleo 1 (`ARDUINO_RUNNING_CORE = 1`), pila de 8192 bytes | `cores/esp32/main.cpp` y `sdkconfig` del core |
+| `delay(ms)` = `vTaskDelay(ms / portTICK_PERIOD_MS)` | `cores/esp32/esp32-hal-misc.c` |
+| Tarea Wi-Fi fijada al núcleo 0 | `CONFIG_ESP32_WIFI_TASK_PINNED_TO_CORE_0=y` en el `sdkconfig` |
+| ESP-NOW: 250 bytes por paquete, 20 *peers* en total | `ESP_NOW_MAX_DATA_LEN` y `ESP_NOW_MAX_TOTAL_PEER_NUM` en `esp_now.h` |
+| El callback de recepción corre en la tarea Wi-Fi | Guía de ESP-NOW de ESP-IDF 4.4 |
+
+En ESP-IDF 5.4 o posterior existe ESP-NOW v2, con hasta 1470 bytes por paquete. El core 2.0.17 no la usa.

@@ -11,10 +11,9 @@ Actualizado: 2026-10-26. Archivo pensado para retomar desde otra PC u otra sesi�
   antes de trabajar. `docs/presentacion` = `main` + la presentación.
 - Aclaraciones ya confirmadas (no presentarlas como problemas abiertos):
   - El corte de ~0,4 ms al final de la captura "servo bloqueado" (P03, 2026-10-15) es el instante en que
-    se soltó el agarre del servo. No es una falla. El informe todavía dice "sin explicar"; lo corrige el
-    usuario.
-  - La salida de 5 V del regulador se midió y casi no varía. El informe dice que no se midió la mínima en
-    un pico; lo corrige el usuario.
+    se soltó el agarre del servo. No es una falla. Corregido en el informe el 2026-10-26.
+  - La salida de 5 V del regulador se midió con carga y casi no varía (sin cifras registradas).
+    Corregido en el informe el 2026-10-26.
 
 ## Estado del repositorio (sin commitear)
 
@@ -90,9 +89,9 @@ usuario.
 
 ## 4. Guía de estudio (`docs/aprendizaje/`)
 
-- [ ] Que el usuario la lea. Antes de pasar a las diapositivas, verificar en la documentación de Espressif
-  estos datos generales: tick de 1 ms, `loopTask` con prioridad 1 en el núcleo 1, ESP-NOW con 250 bytes y
-  20 peers, y `delay()` = `vTaskDelay()`.
+- [ ] Que el usuario la lea.
+- Hecho el 2026-10-26: los datos generales (tick, `loopTask`, ESP-NOW, `delay()`) se verificaron contra el
+  core 2.0.17 y ESP-IDF 4.4.7; la tabla con las fuentes está al final de `docs/aprendizaje/README.md`.
 - [ ] Agregar a la guía el caso del GPIO 12 → 23 como ejemplo de diagnóstico: intercambiar conectores para
   ver si la falla sigue al pin o al servo.
 - [ ] Hallazgos de la revisión que podrían salir en la defensa (ya están en las preguntas de práctica):
