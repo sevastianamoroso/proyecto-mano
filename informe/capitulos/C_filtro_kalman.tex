@@ -1,0 +1,52 @@
+\section{Filtro de Kalman de la versión 1.0.0}
+\label{sec:kalman}
+
+La versión 1.0.0 estimaba la orientación de la muñeca con un filtro de Kalman de dos estados por eje \cite{kalman1960}, según la implementación difundida por K.~Lauszus \cite{lauszus_kalman}. El filtro de Kalman es un estimador recursivo que pondera la predicción del modelo y la medición según sus incertidumbres. Su estado es el ángulo $\theta$ y el sesgo del giróscopo $b$, y en cada ciclo ejecuta dos etapas:
+
+\begin{itemize}
+    \item \textbf{Predicción:} con la velocidad angular medida $\omega$, se proyecta el ángulo y se actualiza la matriz de covarianza del error $P$, que crece según el ruido de proceso:
+    \begin{equation}
+    \theta^- = \theta + \Delta t\,(\omega - b), \qquad
+    P^- = F P F^{T} + Q\,\Delta t, \qquad
+    F = \begin{pmatrix} 1 & -\Delta t \\ 0 & 1 \end{pmatrix}, \quad
+    Q = \begin{pmatrix} Q_{angle} & 0 \\ 0 & Q_{bias} \end{pmatrix}.
+    \end{equation}
+    \item \textbf{Corrección:} se compara la predicción con el ángulo del acelerómetro $\theta_{acc}$ y se corrigen ambos estados con la ganancia de Kalman $K$:
+    \begin{equation}
+    S = P^-_{00} + R, \qquad
+    K = \frac{1}{S}\begin{pmatrix} P^-_{00} \\ P^-_{10} \end{pmatrix}, \qquad
+    \begin{pmatrix} \theta \\ b \end{pmatrix} = \begin{pmatrix} \theta^- \\ b \end{pmatrix} + K\left(\theta_{acc} - \theta^-\right), \qquad
+    P = \left(I - K H\right) P^-,
+    \end{equation}
+    con $H = \begin{pmatrix} 1 & 0 \end{pmatrix}$. Si la medición es ruidosa ($R$ grande), $K$ es pequeña y el filtro confía más en la predicción.
+\end{itemize}
+
+Los parámetros utilizados fueron $Q_{angle} = 0{,}001$, $Q_{bias} = 0{,}003$ y $R = 0{,}03$.
+
+\begin{lstlisting}[caption={Etapas del filtro de Kalman (\texttt{KalmanFilter.h}, versión 1.0.0).}, label={cod:kalman}]
+float getAngle(float newAngle, float newRate, float dt) {
+    // 1. Predicción
+    rate = newRate - bias;
+    angle += dt * rate;
+    P[0][0] += dt * (dt * P[1][1] - P[0][1] - P[1][0] + Q_angle);
+    P[0][1] -= dt * P[1][1];
+    P[1][0] -= dt * P[1][1];
+    P[1][1] += Q_bias * dt;
+
+    // 2. Corrección
+    float S = P[0][0] + R_measure;
+    float K[2] = { P[0][0] / S, P[1][0] / S };
+    float y = newAngle - angle;
+    angle += K[0] * y;
+    bias  += K[1] * y;
+
+    float P00_temp = P[0][0], P01_temp = P[0][1];
+    P[0][0] -= K[0] * P00_temp;
+    P[0][1] -= K[0] * P01_temp;
+    P[1][0] -= K[1] * P00_temp;
+    P[1][1] -= K[1] * P01_temp;
+    return angle;
+}
+\end{lstlisting}
+
+Las causas por las que esta versión falló en las pruebas se resumen en la sección~\ref{sec:evolucion}.

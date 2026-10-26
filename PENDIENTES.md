@@ -82,16 +82,11 @@ usuario.
   Serial Plotter?
 - [ ] Guardar los originales antes de tocar cualquier imagen.
 
-## 3. Comentario del profesor: resumir la evolución de versiones (`06_evolucion.tex`, ~130 líneas)
+## 3. Comentario del profesor: resumir la evolución de versiones — hecho el 2026-10-26
 
-Propuesta, que dejaría el capítulo en unas 50 líneas:
-- **Mantener** la tabla de versiones y la tabla de problemas de la versión preliminar.
-- **Kalman:** un párrafo con la idea y las 4 causas de falla en una línea cada una. Las ecuaciones y el
-  listado van a un apéndice o se eliminan.
-- **v2.0 a v2.3:** dos o tres líneas cada una.
-
-- Decidido el 2026-10-26: las ecuaciones y el código del Kalman van a un apéndice (C).
-- [ ] Revisar las referencias cruzadas (`\ref`) que apuntan a las subsecciones que se eliminen.
+- `06_evolucion.tex` pasó de 129 a 67 líneas (incluye las dos tablas, que se mantuvieron). Las ecuaciones,
+  los parámetros y el código del Kalman están en el apéndice C (`C_filtro_kalman.tex`, `\label{sec:kalman}`).
+- [ ] Que el usuario lo revise en el PDF.
 
 ## 4. Guía de estudio (`docs/aprendizaje/`)
 
