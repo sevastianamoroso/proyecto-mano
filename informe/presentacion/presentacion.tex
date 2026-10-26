@@ -717,7 +717,7 @@ struct MensajeBrazo {
       \item Incluye ambas esperas; no el movimiento mecánico
     \end{itemize}
     \vspace{1ex}
-    \pendiente{completar con media, máximo e histograma (P11)}
+    \textbf{Medido:} \alert{media $\approx\SI{24}{\milli\second}$} ($\approx$420 escalones), coherente con la estimación
   \end{columns}
 \end{frame}
 
@@ -787,7 +787,7 @@ struct MensajeBrazo {
     Calibración sin transmisión (P09) & La mano va a reposo y se recupera & {\color{verde}\checkmark} \\
     Respuesta del sistema con MATLAB (P16) & Seguimiento en dedos y muñeca & {\color{verde}\checkmark} \\
     \midrule
-    Latencia de punta a punta (P11) & \pendiente{prueba preparada, falta medir} & \\
+    Latencia de punta a punta (P11) & Media $\approx\SI{24}{\milli\second}$ & {\color{verde}\checkmark} \\
     Muñeca: deriva y retorno a la posición (P13) & \pendiente{a realizar} & \\
     Failsafe al apagar el guante (P10) & \pendiente{registrar} & \\
     \bottomrule
@@ -803,6 +803,7 @@ struct MensajeBrazo {
     \item \textbf{Separación de responsabilidades:} el guante calcula, la mano valida, suaviza y mueve
     \item \textbf{Seguridad en el firmware:} checksum, failsafe a \SI{250}{\milli\second}, límites mecánicos, rampa de velocidad
     \item \textbf{Diseño iterativo validado en hardware:} 6 versiones, cada cambio con un motivo observado; el filtrado doble sumaba retardo y un filtro simple y verificable resolvió la deriva
+    \item \textbf{Tiempo real:} latencia media de punta a punta $\approx\SI{24}{\milli\second}$, menor que el movimiento del propio servo
     \item \textbf{Alimentación:} consumo medido muy por debajo de la capacidad; ESP32 separado de los servos
     \item Limitaciones: sin realimentación de fuerza, \textit{yaw} no medido (sin magnetómetro), depende de la calibración
   \end{itemize}
@@ -820,6 +821,13 @@ struct MensajeBrazo {
 % RESPALDO: para preguntas del jurado (no se exponen)
 \appendix
 \section{Respaldo}
+
+\begin{frame}{Respaldo: latencia medida (P11)}
+  \centering
+  \colorbox{white}{\includegraphics[width=0.82\linewidth]{Mediciones/P11_latencia_bloques.pdf}}\\[1ex]
+  \small Corrida larga ($\approx$420 escalones): media \SI{23.9}{\milli\second}.
+  Corrida con ensayos individuales ($n=28$): \SIrange{22.8}{42.3}{\milli\second}, sin pérdidas.
+\end{frame}
 
 \begin{frame}{Respaldo: filtro de Kalman (v1.0.0)}
   Estado: ángulo $\theta$ y \textit{bias} del giróscopo $b$

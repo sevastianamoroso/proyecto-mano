@@ -1,0 +1,26 @@
+% Latencia de punta a punta (P11, 2026-10-26). Datos: docs/pruebas/evidencia/2026-10-26_latencia/P11_medias_bloques_15.txt
+% Compilar aparte (tectonic -X compile P11_latencia_bloques.tex) y usar el PDF en el informe y la presentación.
+\documentclass[border=4pt]{standalone}
+\usepackage[spanish]{babel}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\begin{document}
+\begin{tikzpicture}
+\begin{axis}[
+  width=14cm, height=6cm,
+  xlabel={Bloque de 15 escalones}, ylabel={Latencia media (ms)},
+  xmin=0.5, xmax=28.5, ymin=0, ymax=40,
+  xtick={1,4,...,28}, grid=major, grid style={gray!25},
+  legend pos=south east, legend cell align=left,
+  /pgf/number format/use comma,
+]
+\addplot[very thick, blue!70!black, mark=*, mark size=1.8pt] coordinates {
+(1,33.60) (2,25.98) (3,22.95) (4,21.44) (5,24.35) (6,21.98) (7,23.95) (8,25.18) (9,23.95) (10,25.38)
+(11,21.08) (12,23.91) (13,20.35) (14,25.51) (15,23.68) (16,22.18) (17,24.85) (18,23.18) (19,20.28)
+(20,23.78) (21,21.95) (22,22.98) (23,25.01) (24,20.11) (25,34.97) (26,21.34) (27,23.04) (28,21.21)};
+\addlegendentry{Media de cada bloque}
+\addplot[very thick, red!75!black, dashed, domain=0.5:28.5] {23.86};
+\addlegendentry{Media general: 23,9 ms}
+\end{axis}
+\end{tikzpicture}
+\end{document}

@@ -49,11 +49,12 @@ Todo commiteado en `docs/presentacion`. **Por decidir:** llevarlo a `main` antes
   - las estadísticas no se imprimían;
   - `VEL_MAX_MUNIECA_*` no coincidían con el firmware real.
 
-- [ ] Hacer la prueba: unos 500 ensayos, con 2 o 3 reinicios del RX durante el registro.
-- [ ] El script de MATLAB no fue probado: revisar que corra con el primer registro.
-- [ ] Con los resultados, actualizar el capítulo 7, el capítulo 9 (su `\pendiente` de latencia), la
-  presentación y `EXPLICACION_CODIGO.md` §6 y §9. Ver la sección 9 de la guía.
-- [ ] Registrar la prueba en `docs/pruebas/REGISTRO_PRUEBAS.md`.
+- **Hecho el 2026-10-26 (P11):** media ≈ 24 ms (≈ 420 escalones en bloques de 15); otra corrida con 28 ensayos
+  individuales: 22,8–42,3 ms. Cargado en el cap. 7 (con figura en pgfplots), el cap. 9, las diapositivas 21, 24, 25 y un
+  respaldo, `EXPLICACION_CODIGO.md` y `REGISTRO_PRUEBAS.md`. Evidencia en `docs/pruebas/evidencia/2026-10-26_latencia/`.
+  Decisión del usuario: alcanza con el valor medio; la caracterización exhaustiva queda como trabajo futuro.
+- Observación sin resolver: el campo `final_us` (~310 ms) es mayor que lo que da el limitador según el código (~160 ms).
+  No afecta a la latencia informada.
 
 ## 2. Comentario del profesor: figuras de señales poco legibles
 
@@ -88,9 +89,7 @@ Todo commiteado en `docs/presentacion`. **Por decidir:** llevarlo a `main` antes
 ## 5. Pedidos del usuario (2026-10-25)
 
 ### Informe y presentación
-- [ ] **Latencia medida:** agregar al informe las mediciones nuevas, que cubren sólo el enlace y el
-  receptor. Ver la sección 1 para el método, los problemas encontrados y qué filas del capítulo 7
-  reemplazan.
+- [x] **Latencia medida:** hecho el 2026-10-26 (ver sección 1).
 - [ ] **GPIO 12 → 23:** cambiarlo en todos los lugares donde aparezca. Revisado el 2026-10-25: el código,
   el informe, la presentación y la documentación ya dicen GPIO 23. Las menciones al GPIO 12 que quedan
   cuentan la historia del cambio, y `informe/referencia/` es el informe original. Falta lo de la sección
@@ -143,7 +142,6 @@ Todo commiteado en `docs/presentacion`. **Por decidir:** llevarlo a `main` antes
   - Arreglos visuales: espacios en la ecuación del complementario, etiqueta tapada por una flecha en
     "Recorrido de un dato", cortes de palabra en la tabla de "Evolución", título largo de un respaldo.
   - [ ] Sigue pendiente el video de respaldo de la demo (diapositiva 4).
-  - [ ] Cuando haya resultados de latencia, reemplazar los `\pendiente` de las diapositivas 21 y 24.
 
 ### Código
 - [ ] **Comentarios:** reescribirlos para que suenen más naturales y humanos en `Transmisor.ino`,

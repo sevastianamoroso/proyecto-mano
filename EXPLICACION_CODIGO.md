@@ -618,8 +618,9 @@ Mejoras propuestas por la investigación de latencia, **no implementadas** (requ
   movimientos rápidos.
 - Subir la tasa de envío a 100 Hz (escalando el limitador, ver punto 2).
 - PWM de 100–200 Hz en los MG946R (el fabricante sólo especifica 50 Hz; probar vigilando temperatura).
-- **Medir la latencia real** de punta a punta: incluir `micros()` del transmisor en el paquete o
-  conmutar un GPIO en cada extremo y observar ambos con un osciloscopio.
+- **Latencia de punta a punta: medida el 2026-10-26** (P11, método de `docs/pruebas/PRUEBA_LATENCIA.md`):
+  media ≈ 24 ms en ≈ 420 escalones. Queda una caracterización exhaustiva (máximos, percentiles,
+  distancia, interferencia y el camino de la muñeca).
 
 ---
 

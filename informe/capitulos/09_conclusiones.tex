@@ -1,7 +1,7 @@
 \section{Conclusiones}
 \label{sec:conclusiones}
 
-\pendiente{Estas conclusiones todavía no incluyen la latencia medida ni las pruebas de deriva y retorno de la muñeca con la versión actual: son los siguientes pasos y se incorporarán una vez realizados.}
+\pendiente{Estas conclusiones todavía no incluyen las pruebas de deriva y retorno de la muñeca con la versión actual: son el siguiente paso y se incorporarán una vez realizadas.}
 
 Se desarrolló un sistema de telerobótica de bajo costo en el que un guante con sensores comanda una mano impresa en 3D por medio de un enlace inalámbrico ESP-NOW. El sistema replica la flexión de los cinco dedos y dos grados de libertad de la muñeca (desplazamiento vertical y rotación), con un firmware sobre FreeRTOS en cada nodo.
 
@@ -11,16 +11,16 @@ Los principales resultados y aprendizajes del proyecto son:
     \item \textbf{Separación de responsabilidades.} El guante concentra la calibración y el cálculo de los ángulos, y la mano sólo valida, suaviza y mueve los servos. Así, cambiar de operador requiere recalibrar únicamente el guante.
     \item \textbf{Seguridad en el firmware.} La verificación por checksum, el modo de seguridad ante la pérdida de paquetes, los límites mecánicos y el limitador de velocidad evitan que un dato erróneo o un corte del enlace dañen la mecánica. La pausa del envío durante la calibración (versión 2.3.0) se apoya en ese mismo modo de seguridad y se verificó en hardware.
     \item \textbf{Proceso iterativo validado en hardware.} Las pruebas de la versión preliminar mostraron que el doble filtrado (en el transmisor y en el receptor) introducía un retardo perceptible y que la implementación del filtro de Kalman producía deriva en la muñeca. Su reemplazo por un filtro complementario sobre ángulos absolutos y por un limitador de velocidad en el receptor resolvió ambos problemas con un algoritmo más simple de ajustar.
-    \item \textbf{Respuesta del sistema.} Con la versión 2.3.0, la posición de la mano reproduce la orden del guante en los dedos registrados (pulgar e índice) y en los dos ejes de la muñeca, incluidas las posiciones intermedias; la banda muerta descarta las variaciones de \SI{1}{\degree} de la orden, a costa de un error final de hasta \SI{1}{\degree}.
+    \item \textbf{Respuesta del sistema.} Con la versión 2.3.0, la posición de la mano reproduce la orden del guante en los dedos registrados (pulgar e índice) y en los dos ejes de la muñeca, incluidas las posiciones intermedias; la banda muerta descarta las variaciones de \SI{1}{\degree} de la orden, a costa de un error final de hasta \SI{1}{\degree}. La latencia media de punta a punta medida es de unos \SI{24}{\milli\second}, coherente con la estimación y bastante menor que el tiempo de movimiento de los servos: la mano responde en tiempo real, sin un retardo apreciable para el operador.
     \item \textbf{Alimentación.} Las mediciones con la versión 2.3.0 muestran que el receptor consume a \SI{12}{\volt} entre \SIrange{75}{100}{\milli\ampere} en reposo y menos de \SI{0.75}{\ampere} en los picos registrados, muy por debajo de la capacidad de la fuente y del regulador. Separar la alimentación del ESP32 (por USB) de la de los servos evita que un pico de corriente de los motores reinicie el microcontrolador.
 \end{itemize}
 
-Entre las limitaciones del sistema actual se encuentran la falta de realimentación de fuerza al operador, la imposibilidad de medir el giro sobre el eje vertical (\textit{yaw}) con el MPU6050, que no tiene magnetómetro, y la dependencia de una calibración inicial de los dedos para cada operador. Además, la latencia de punta a punta se estimó a partir del código y de las hojas de datos, pero todavía no se midió.
+Entre las limitaciones del sistema actual se encuentran la falta de realimentación de fuerza al operador, la imposibilidad de medir el giro sobre el eje vertical (\textit{yaw}) con el MPU6050, que no tiene magnetómetro, y la dependencia de una calibración inicial de los dedos para cada operador. Además, de la latencia de punta a punta se midió el valor medio, pero no se caracterizó su distribución completa.
 
 \subsection{Trabajo futuro}
 
 \begin{itemize}
-    \item \textbf{Medir la latencia real} de punta a punta (sección~\ref{sec:latencia}), que hoy es sólo una estimación.
+    \item \textbf{Mediciones exhaustivas de la latencia} (sección~\ref{sec:latencia}): su distribución completa (máximos y percentiles), su variación con la distancia, los obstáculos y la interferencia, y el camino de la muñeca, que incluye el filtro interno del MPU6050.
     \item \textbf{Aumentar las frecuencias de trabajo y evaluar la respuesta de los servos.} Por un lado, subir la tasa de envío a \SI{100}{\hertz}; como el limitador de velocidad actúa por iteración, en ese caso debería escalarse con el tiempo real entre iteraciones para que la velocidad máxima no se duplique. Por otro, probar un PWM de \SIrange{100}{200}{\hertz} en los MG946R, para los que el fabricante sólo especifica \SI{50}{\hertz}, vigilando la temperatura y el comportamiento de los servos.
     \item \textbf{Investigar otras mejoras posibles} a partir de los resultados de estas pruebas.
 \end{itemize}

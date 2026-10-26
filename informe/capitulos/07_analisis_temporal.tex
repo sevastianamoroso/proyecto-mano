@@ -1,7 +1,7 @@
 \section{Análisis temporal}
 \label{sec:latencia}
 
-La tabla~\ref{tab:latencia} estima el retardo desde que el operador mueve la mano hasta que el servo recibe la nueva orden. \textbf{Son estimaciones a partir del código y de las hojas de datos, no mediciones} sobre el hardware.
+La tabla~\ref{tab:latencia} estima el retardo desde que el operador mueve la mano hasta que el servo recibe la nueva orden. \textbf{Son estimaciones a partir del código y de las hojas de datos}; al final de la sección se comparan con la latencia medida.
 
 \begin{table}[H]
 \centering
@@ -27,4 +27,13 @@ En promedio, la orden llega al servo unos \SI{30}{\milli\second} después del mo
 
 Para medir la latencia real se preparó un ensayo de punta a punta sobre el camino de los dedos (procedimiento en \texttt{docs/\allowbreak pruebas/\allowbreak PRUEBA\_LATENCIA.md}). El receptor reemplaza al potenciómetro del índice: aplica un escalón de tensión en la entrada del transmisor (GPIO 34) y mide, con su propio reloj, el tiempo hasta el fin del primer pulso PWM con el ancho nuevo en la salida del servo del índice. Como el inicio y el fin se toman en la misma placa, no hace falta sincronizar relojes. La medición incluye la espera al ciclo del transmisor, la lectura y el envío, la recepción, la tarea de control y la espera al pulso PWM; no incluye el movimiento mecánico ni el filtro interno del MPU6050.
 
-\pendiente{Faltan los resultados de este ensayo: con ellos se confirmará o corregirá esta estimación.}
+\paragraph{Resultado.} El ensayo se realizó con la versión 2.3.0 de ambos nodos. En una corrida de unos 420 escalones, promediados en bloques de 15, la \textbf{latencia media de punta a punta fue de \SI{23.9}{\milli\second}} (figura~\ref{fig:latencia}). En otra corrida, en la que se registró cada escalón por separado (28 ensayos), la media fue de \SI{31.4}{\milli\second}, con valores entre \SI{22.8}{\milli\second} y \SI{42.3}{\milli\second}, sin paquetes perdidos ni ensayos sin respuesta. La diferencia entre ambas medias se debe a la fase entre las placas: las dos trabajan a \SI{50}{\hertz} con relojes independientes que casi no se desfasan, por lo que la espera hasta el siguiente pulso PWM queda prácticamente fija durante una corrida y cambia de una corrida a otra.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{Mediciones/P11_latencia_bloques.pdf}
+    \caption{Latencia de punta a punta en la corrida larga. Cada punto es la media de 15 escalones.}
+    \label{fig:latencia}
+\end{figure}
+
+Los valores medidos coinciden con la estimación de la tabla~\ref{tab:latencia} y equivalen a uno o dos ciclos de transmisión. Son además bastante menores que el tiempo que tarda el propio servo en moverse (unos \SI{100}{\milli\second} cada \SI{60}{\degree} en el SG90), por lo que el enlace y el procesamiento no son el factor que limita la respuesta: en la operación la mano sigue al guante sin un retardo apreciable, como se observa también en la sección~\ref{sec:pruebas_respuesta}. Para los objetivos de este proyecto alcanza con el valor medio; la caracterización completa de la latencia queda como trabajo futuro (sección~\ref{sec:conclusiones}).
