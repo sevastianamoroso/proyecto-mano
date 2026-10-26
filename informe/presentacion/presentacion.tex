@@ -10,41 +10,104 @@
 \usepackage{siunitx}
 \sisetup{output-decimal-marker={,}, per-mode=symbol}
 \usepackage{tikz}
-\usetikzlibrary{positioning, arrows.meta, shapes.geometric, fit, calc}
+\usetikzlibrary{positioning, arrows.meta, shapes.geometric, fit, calc, decorations.pathmorphing, backgrounds}
 \usepackage{listings}
+\usepackage{appendixnumberbeamer}
 
 \graphicspath{{../Imagenes/}}
 
-%%%%%%%% ESTILO %%%%%%%%
+%%%%%%%% ESTILO (tema oscuro, pensado para proyector) %%%%%%%%
 \usetheme{default}
-\definecolor{unsazul}{RGB}{0,51,102}
-\definecolor{acento}{RGB}{214,104,0}
-\setbeamercolor{frametitle}{fg=white,bg=unsazul}
-\setbeamercolor{title}{fg=unsazul}
-\setbeamercolor{structure}{fg=unsazul}
+\definecolor{fondo}{RGB}{22,27,34}
+\definecolor{fondoclaro}{RGB}{36,43,54}
+\definecolor{texto}{RGB}{230,233,237}
+\definecolor{tenue}{RGB}{145,155,168}
+\definecolor{acento}{RGB}{255,153,51}
+\definecolor{celeste}{RGB}{98,176,255}
+\definecolor{verde}{RGB}{110,214,140}
+\definecolor{rojo}{RGB}{255,107,107}
+% Rellenos de bloques TikZ: tonos oscuros para que el texto claro se lea
+\definecolor{cajaazul}{RGB}{30,58,95}
+\definecolor{cajanaranja}{RGB}{96,58,22}
+\definecolor{cajaverde}{RGB}{26,76,50}
+\definecolor{cajaamarilla}{RGB}{88,76,22}
+\definecolor{cajaroja}{RGB}{98,36,38}
+\definecolor{cajagris}{RGB}{52,58,68}
+
+\setbeamercolor{background canvas}{bg=fondo}
+\setbeamercolor{normal text}{fg=texto,bg=fondo}
+\setbeamercolor{structure}{fg=celeste}
 \setbeamercolor{alerted text}{fg=acento}
-\setbeamerfont{frametitle}{series=\bfseries}
+\setbeamercolor{frametitle}{fg=texto}
+\setbeamercolor{framesection}{fg=tenue}
+\setbeamercolor{title}{fg=texto}
+\setbeamercolor{subtitle}{fg=acento}
+\setbeamercolor{block title}{fg=texto,bg=cajaazul}
+\setbeamercolor{block body}{fg=texto,bg=fondoclaro}
+\setbeamercolor{block title alerted}{fg=texto,bg=cajanaranja}
+\setbeamercolor{block body alerted}{fg=texto,bg=fondoclaro}
+\setbeamercolor{description item}{fg=acento}
+\setbeamertemplate{blocks}[rounded][shadow=false]
+\setbeamerfont{frametitle}{size=\Large,series=\bfseries}
+\setbeamerfont{framesection}{size=\footnotesize}
 \setbeamertemplate{navigation symbols}{}
 \setbeamertemplate{itemize items}[circle]
+\setbeamercolor{itemize item}{fg=acento}
+\setbeamercolor{itemize subitem}{fg=tenue}
+\setbeamercolor{enumerate item}{fg=acento}
+
+% Título a la izquierda, sección a la derecha y una línea de acento debajo
 \setbeamertemplate{frametitle}{%
-  \nointerlineskip
-  \begin{beamercolorbox}[wd=\paperwidth,ht=2.4ex,dp=1.2ex,leftskip=1em]{frametitle}
-    \usebeamerfont{frametitle}\insertframetitle
-  \end{beamercolorbox}}
+  \vspace*{1.6ex}%
+  \hbox to \textwidth{%
+    {\usebeamerfont{frametitle}\usebeamercolor[fg]{frametitle}\insertframetitle}\hfill
+    {\usebeamerfont{framesection}\usebeamercolor[fg]{framesection}\insertsectionhead}}%
+  \nointerlineskip\vskip 0.7ex
+  \hbox{{\color{acento}\rule{2.4cm}{1.6pt}}}\vskip 0.3ex}
+
+% Pie: nombre, número de diapositiva y barra de avance
 \setbeamertemplate{footline}{%
-  \hfill\textcolor{gray}{\scriptsize Telerobótica -- UNS DIEC \quad \insertframenumber}\hspace{1em}\vspace{0.8ex}}
+  \hbox to \paperwidth{\hspace{1em}{\color{tenue}\scriptsize Telerobótica -- UNS DIEC}\hfill
+    {\color{tenue}\scriptsize\insertframenumber\,/\,\inserttotalframenumber}\hspace{1em}}%
+  \vspace{0.7ex}%
+  \hbox{\begin{tikzpicture}
+    \fill[fondoclaro] (0,0) rectangle (\paperwidth,2pt);
+    \pgfmathsetmacro{\avance}{min(1,\insertframenumber/max(1,\inserttotalframenumber))}
+    \fill[acento] (0,0) rectangle ({\avance*\paperwidth},2pt);
+  \end{tikzpicture}}}
 
 % Lo que falta completar (en rojo, como en el informe)
-\newcommand{\pendiente}[1]{\textcolor{red}{\textbf{[PENDIENTE:} #1\textbf{]}}}
+\newcommand{\pendiente}[1]{\textcolor{rojo}{\textbf{[PENDIENTE:} #1\textbf{]}}}
 
 \tikzset{
-  bloque/.style={draw, rounded corners, align=center, fill=blue!5, minimum height=1cm, font=\small},
-  flecha/.style={-{Stealth[length=2.5mm]}, thick},
+  bloque/.style={draw=tenue, rounded corners, align=center, fill=cajaazul, text=texto,
+                 minimum height=1cm, font=\small},
+  flecha/.style={-{Stealth[length=2.5mm]}, thick, draw=texto},
+  tarjeta/.style={fill=white, rounded corners=4pt, inner sep=3pt},
+  carril/.style={draw=tenue!60, rounded corners=6pt, fill=fondoclaro},
+  etiqueta/.style={font=\footnotesize, text=tenue, anchor=north west},
+  % Íconos de riesgo para la motivación
+  radiacion/.pic={
+    \fill[yellow!85!orange] (0,0) circle (0.5);
+    \fill[black] (0,0) circle (0.08);
+    \foreach \a in {90,210,330}
+      \fill[black] (\a-30:0.14) arc (\a-30:\a+30:0.14) -- (\a+30:0.42) arc (\a+30:\a-30:0.42) -- cycle;
+  },
+  peligro/.pic={
+    \fill[yellow!85!orange, rounded corners=1.5pt] (90:0.55) -- (210:0.55) -- (330:0.55) -- cycle;
+    \node[font=\bfseries\large, text=black] at (0,-0.04) {!};
+  },
+  termometro/.pic={
+    \draw[line width=1.2pt, texto] (-0.09,-0.25) -- (-0.09,0.38) arc (180:0:0.09) -- (0.09,-0.25);
+    \fill[rojo] (0,-0.38) circle (0.17);
+    \fill[rojo] (-0.045,-0.3) rectangle (0.045,0.28);
+    \foreach \y in {-0.05,0.1,0.25} \draw[texto, line width=0.6pt] (0.09,\y) -- (0.2,\y);
+  },
 }
 
-\lstset{language=C++, basicstyle=\ttfamily\scriptsize, keywordstyle=\color{blue},
-  commentstyle=\color{green!50!black}, backgroundcolor=\color{gray!8}, frame=single,
-  rulecolor=\color{gray!40}, showstringspaces=false, columns=fullflexible,
+\lstset{language=C++, basicstyle=\ttfamily\scriptsize\color{texto}, keywordstyle=\color{celeste},
+  commentstyle=\color{verde}, backgroundcolor=\color{black!80!fondo}, frame=single,
+  rulecolor=\color{tenue!50}, showstringspaces=false, columns=fullflexible,
   morekeywords={uint8_t,uint16_t,int16_t}}
 
 \title{Movilidad de mano impresa en 3D\\en base al sensado de los movimientos}
@@ -57,32 +120,76 @@
 \begin{document}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Portada: los logos tienen fondo blanco, así que van sobre una franja blanca
 \begin{frame}[plain]
-  \begin{columns}[T]
-    \column{0.5\textwidth}\includegraphics[height=1.6cm]{EmblemaUNS.jpg}
-    \column{0.5\textwidth}\hfill\includegraphics[height=1.6cm]{DIEC.jpg}
+  \begin{tikzpicture}[remember picture, overlay]
+    \fill[white] (current page.north west) rectangle ([yshift=-2.1cm]current page.north east);
+    \fill[acento] ([yshift=-2.1cm]current page.north west) rectangle ([yshift=-2.18cm]current page.north east);
+    \node[anchor=west] at ([xshift=1cm, yshift=-1.05cm]current page.north west)
+      {\includegraphics[height=1.5cm]{EmblemaUNS.jpg}};
+    \node[anchor=east] at ([xshift=-1cm, yshift=-1.05cm]current page.north east)
+      {\includegraphics[height=1.5cm]{DIEC.jpg}};
+  \end{tikzpicture}
+  \vspace{2.1cm}
+  \begin{columns}[c]
+    \column{0.64\textwidth}
+    {\usebeamercolor[fg]{title}\Large\bfseries Movilidad de mano impresa en 3D\\en base al sensado de los movimientos\par}
+    \vspace{1.2ex}
+    {\usebeamercolor[fg]{subtitle}\large\insertsubtitle\par}
+    \vspace{3ex}
+    {\normalsize Joaquín Petruf \quad Sebastián Amoroso\par}
+    \vspace{1ex}
+    {\color{tenue}\footnotesize\insertinstitute\par\vspace{1ex}\insertdate\par}
+    \column{0.34\textwidth}
+    \centering
+    \begin{tikzpicture}
+      \node[tarjeta] {\includegraphics[width=0.95\linewidth]{Receptor/Receptor_1.png}};
+    \end{tikzpicture}
   \end{columns}
-  \vfill
-  \titlepage
 \end{frame}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introducción}
+
 \begin{frame}{Motivación}
-  \begin{columns}[c]
-    \column{0.58\textwidth}
-    \begin{itemize}
-      \item Tareas donde la presencia humana es un \alert{riesgo inaceptable}:
-      \begin{itemize}
-        \item sustancias tóxicas y reactivos volátiles
-        \item material radiactivo
-        \item temperaturas extremas
-      \end{itemize}
-      \item \textbf{Telerobótica:} un operador maneja un robot a distancia, a través de un enlace (en general inalámbrico).
-      \item Interfaz natural: la propia mano del operador.
+  \centering
+  \resizebox{0.94\textwidth}{!}{%
+  \begin{tikzpicture}[every node/.style={font=\small}]
+    % Operador en zona segura
+    \node[tarjeta] (guante) at (0,0) {\includegraphics[height=2.6cm]{Transmisor/GuanteCompleto.png}};
+    \node[below=1mm of guante, align=center] {\textbf{Operador}\\{\color{tenue}\footnotesize zona segura}};
+    % Robot en zona de riesgo
+    \node[tarjeta] (mano) at (9.6,0) {\includegraphics[height=2.6cm]{Receptor/Receptor_1.png}};
+    \node[below=1mm of mano, align=center] (lmano) {\textbf{Mano robótica}\\{\color{tenue}\footnotesize zona de riesgo}};
+    \pic at (12.2,1.05) {radiacion};
+    \pic at (12.2,-0.1) {peligro};
+    \pic at (12.2,-1.25) {termometro};
+    \node[font=\scriptsize, text=tenue, anchor=west] at (12.75,1.05) {radiación};
+    \node[font=\scriptsize, text=tenue, anchor=west] at (12.75,-0.1) {tóxicos};
+    \node[font=\scriptsize, text=tenue, anchor=west] at (12.75,-1.25) {temperatura};
+    \coordinate (zsup) at (12.2,1.6);
+    \coordinate (zinf) at (14.1,-1.6);
+    \begin{scope}[on background layer]
+      \node[draw=rojo, dashed, very thick, rounded corners=8pt, inner sep=6pt,
+            fit=(mano)(lmano)(zsup)(zinf)] {};
+    \end{scope}
+    % Enlace inalámbrico
+    \foreach \r in {0.35,0.7,1.05}
+      \draw[celeste, very thick] ([xshift=6mm]guante.east) ++(-20:\r) arc (-20:20:\r);
+    \foreach \r in {0.35,0.7,1.05}
+      \draw[celeste, very thick] ([xshift=-6mm]mano.west) ++(160:\r) arc (160:200:\r);
+    \node[align=center, text=celeste] at (4.8,0.15) {\textbf{enlace}\\\textbf{inalámbrico}};
+  \end{tikzpicture}}
+  \vspace{1.5ex}
+  \begin{columns}[T]
+    \column{0.52\textwidth}
+    \begin{itemize}\small
+      \item Tareas donde la presencia humana es un \alert{riesgo inaceptable}: sustancias tóxicas, material radiactivo, temperaturas extremas
+      \item \textbf{Telerobótica:} el operador maneja el robot a distancia
     \end{itemize}
-    \column{0.42\textwidth}
+    \column{0.44\textwidth}
     \begin{block}{Idea}
-      Sensar los movimientos de una mano humana y \textbf{replicarlos de forma inalámbrica} en una mano impresa en 3D.
+      \small Sensar la mano del operador y \textbf{replicar sus movimientos de forma inalámbrica} en una mano impresa en 3D.
     \end{block}
   \end{columns}
 \end{frame}
@@ -116,8 +223,8 @@
 \begin{frame}{Demostración}
   \centering
   \begin{tikzpicture}
-    \node[draw=unsazul, very thick, rounded corners, minimum width=11cm, minimum height=5.2cm,
-          fill=gray!10, align=center, font=\large] {%
+    \node[draw=acento, very thick, rounded corners, minimum width=11cm, minimum height=5.2cm,
+          fill=fondoclaro, align=center, font=\large] {%
       \textbf{Demo en vivo}\\[2ex]
       \normalsize Video de respaldo:\\
       \pendiente{grabar el video y enlazarlo aquí}};
@@ -127,6 +234,8 @@
 \end{frame}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Hardware}
+
 \begin{frame}{Arquitectura del sistema}
   \centering
   \resizebox{\textwidth}{!}{%
@@ -134,17 +243,17 @@
     \node[bloque] (pot) {5 potenciómetros\\(dedos)};
     \node[bloque, below=of pot] (imu) {MPU6050\\(muñeca)};
     \coordinate (medio) at ($(pot)!0.5!(imu)$);
-    \node[bloque, right=1.9cm of medio, fill=orange!10, minimum width=3.4cm] (tx)
+    \node[bloque, right=1.9cm of medio, fill=cajanaranja, minimum width=3.4cm] (tx)
          {\textbf{ESP32 Transmisor}\\ ADC sobremuestreado\\ Filtro complementario\\ Ángulos de servo\\ Empaquetado + checksum};
-    \node[draw, dashed, rounded corners, inner sep=6pt, fit=(pot)(imu)(tx), label=above:{\textbf{Guante}}] {};
-    \node[bloque, right=1.7cm of tx, fill=green!10, minimum width=3.4cm] (rx)
+    \node[draw=tenue, dashed, rounded corners, inner sep=6pt, fit=(pot)(imu)(tx), label=above:{\textbf{Guante}}] {};
+    \node[bloque, right=1.7cm of tx, fill=cajaverde, minimum width=3.4cm] (rx)
          {\textbf{ESP32 Receptor}\\ Validación del paquete\\ Supervisión (failsafe)\\ Limitador de velocidad\\ Banda muerta};
     \node[bloque, right=of rx, yshift=0.8cm] (sg) {5 servos SG90\\(dedos)};
     \node[bloque, right=of rx, yshift=-0.8cm] (mg) {2 servos MG946R\\(muñeca)};
-    \node[draw, dashed, rounded corners, inner sep=6pt, fit=(rx)(sg)(mg), label=above:{\textbf{Mano robótica}}] {};
+    \node[draw=tenue, dashed, rounded corners, inner sep=6pt, fit=(rx)(sg)(mg), label=above:{\textbf{Mano robótica}}] {};
     \draw[flecha] (pot) -- (tx);
     \draw[flecha] (imu) -- (tx);
-    \draw[flecha, very thick, blue!60!black] (tx) -- node[above, font=\footnotesize, align=center]{ESP-NOW\\2,4 GHz} node[below, font=\footnotesize, align=center]{19 bytes\\50 Hz} (rx);
+    \draw[flecha, very thick, draw=celeste] (tx) -- node[above, font=\footnotesize, align=center, text=celeste]{ESP-NOW\\2,4 GHz} node[below, font=\footnotesize, align=center, text=celeste]{19 bytes\\50 Hz} (rx);
     \draw[flecha] (rx) -- node[above, font=\footnotesize]{PWM} (sg);
     \draw[flecha] (rx) -- node[below, font=\footnotesize]{PWM} (mg);
   \end{tikzpicture}}
@@ -160,7 +269,7 @@
   \begin{columns}[c]
     \column{0.5\textwidth}
     \centering
-    \includegraphics[width=0.85\linewidth]{Transmisor/GuanteCompleto.png}\\
+    \tikz\node[tarjeta]{\includegraphics[width=0.8\linewidth]{Transmisor/GuanteCompleto.png}};\\
     {\scriptsize Diseño en Solid Edge, impreso en 3D}\\[1ex]
     \includegraphics[height=1.5cm]{Transmisor/Dedal_1.png}\hspace{2mm}
     \includegraphics[height=1.5cm]{Transmisor/Palanca_Pote.jpg}\hspace{2mm}
@@ -184,8 +293,8 @@
 
 \begin{frame}{Transmisor: conexionado}
   \centering
-  \includegraphics[width=\textwidth]{Conexionado_Transmisor_Diagrama.png}\\[0.5ex]
-  \small Potenciómetros de \SI{10}{\kilo\ohm} entre \SI{3.3}{\volt} y GND, en \textbf{ADC1} (el ADC2 no funciona con la radio activa).
+  \includegraphics[width=0.8\textwidth]{Conexionado_Transmisor_Diagrama.png}\\[0.5ex]
+  \footnotesize Potenciómetros de \SI{10}{\kilo\ohm} entre \SI{3.3}{\volt} y GND, en \textbf{ADC1} (el ADC2 no funciona con la radio activa).
   El filtro RC de la derecha es una mejora posible, no implementada.
 \end{frame}
 
@@ -193,9 +302,9 @@
 \begin{frame}{Receptor: la mano robótica}
   \begin{columns}[c]
     \column{0.3\textwidth}
-    \centering\includegraphics[width=\linewidth]{Receptor/Receptor_1.png}
+    \centering\tikz\node[tarjeta]{\includegraphics[width=0.92\linewidth]{Receptor/Receptor_1.png}};
     \column{0.3\textwidth}
-    \centering\includegraphics[width=\linewidth]{Receptor/Receptor_2.png}
+    \centering\tikz\node[tarjeta]{\includegraphics[width=0.92\linewidth]{Receptor/Receptor_2.png}};
     \column{0.4\textwidth}
     \begin{itemize}
       \item 5 SG90 dentro de la palma, cada uno con biela a su dedo
@@ -209,11 +318,12 @@
 
 \begin{frame}{Receptor: conexionado y alimentación}
   \centering
-  \includegraphics[width=\textwidth]{Conexionado_Receptor_Diagrama.png}\\[0.5ex]
+  \includegraphics[width=0.78\textwidth]{Conexionado_Receptor_Diagrama.png}\\[0.5ex]
   \begin{columns}[T]
     \column{0.5\textwidth}
     \begin{itemize}\scriptsize
-      \item \textbf{Servos:} fuente \SI{12}{\volt}/\SI{4}{\ampere} $\rightarrow$ \textit{buck} MP1584 $\rightarrow$ \SI{5}{\volt}/\SI{3}{\ampere}
+      \item \textbf{Servos:} fuente \SI{12}{\volt}/\SI{4}{\ampere} $\rightarrow$ \textit{buck} \textbf{MP1584} $\rightarrow$ \SI{5}{\volt}
+      \item \textbf{MP1584:} entrada \SIrange{4.5}{28}{\volt}, hasta \SI{3}{\ampere} de salida, conmutación de \SI{100}{\kilo\hertz} a \SI{1.5}{\mega\hertz}
       \item \textbf{ESP32:} por USB, separado de los servos: un pico de los motores no lo reinicia (\textit{brownout})
     \end{itemize}
     \column{0.5\textwidth}
@@ -225,26 +335,101 @@
 \end{frame}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}{Firmware en tiempo real (FreeRTOS)}
-  \begin{itemize}
-    \item ESP32 de dos núcleos: la pila Wi-Fi/ESP-NOW corre en el \textbf{núcleo 0}, el control en el \textbf{núcleo 1}
-  \end{itemize}
-  \vspace{1ex}
-  \centering\small
-  \begin{tabular}{l l c l}
-    \toprule
-    \textbf{Nodo} & \textbf{Tarea} & \textbf{Núcleo} & \textbf{Función} \\
-    \midrule
-    Transmisor & \texttt{tareaTransmision} & 1 & Ciclo de \SI{20}{\milli\second}: IMU, dedos, paquete, envío \\
-    Transmisor & \texttt{loop()} & 1 & Consola serie (calibración) \\
-    Receptor & Callback ESP-NOW & 0 & Valida y deposita en la cola \\
-    Receptor & \texttt{tareaControlActuadores} & 1 & Failsafe, trayectoria, PWM \\
-    \bottomrule
-  \end{tabular}
-  \vspace{2ex}
-  \begin{itemize}
-    \item Período fijo con \texttt{vTaskDelayUntil()}: no se alarga con el tiempo de cómputo (a diferencia de \texttt{delay(20)})
-  \end{itemize}
+\section{Firmware}
+
+\begin{frame}{Firmware en tiempo real: dos núcleos}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+    \centering\small
+    \begin{tabular}{l c c}
+      \toprule
+      \textbf{Tarea} & \textbf{Núcleo} & \textbf{Prio.} \\
+      \midrule
+      \multicolumn{3}{l}{\color{tenue}\scriptsize Transmisor} \\
+      \texttt{tareaTransmision} & 1 & 2 \\
+      \texttt{loop()} (calibración) & 1 & 1 \\
+      Wi-Fi + \texttt{OnDataSent} & 0 & alta \\
+      \midrule
+      \multicolumn{3}{l}{\color{tenue}\scriptsize Receptor} \\
+      \texttt{tareaControlActuadores} & 1 & 3 \\
+      Wi-Fi + \texttt{OnDataRecv} & 0 & alta \\
+      \bottomrule
+    \end{tabular}\\[1ex]
+    {\scriptsize La pila Wi-Fi/ESP-NOW corre en el núcleo 0 por defecto (Arduino-ESP32)}
+    \column{0.48\textwidth}
+    \begin{itemize}\small
+      \item \textbf{Núcleo 0:} radio y sus \textit{callbacks}, que sólo validan y copian
+      \item \textbf{Núcleo 1:} nuestras tareas, fijadas con \texttt{xTaskCreatePinnedToCore()} $\Rightarrow$ la radio no le agrega \textit{jitter} al ciclo de \SI{20}{\milli\second}
+      \item \textbf{Entre núcleos:} cola en el receptor; en el transmisor sólo un \texttt{volatile bool} (ACK)
+      \item \texttt{loop()} y \texttt{tareaTransmision} en el mismo núcleo, con más prioridad la tarea $\Rightarrow$ la calibración no necesita semáforo
+    \end{itemize}
+  \end{columns}
+  \vspace{1.5ex}
+  \begin{block}{Período fijo con \texttt{vTaskDelayUntil()}}
+    \small Despierta en instantes absolutos (0, 20, 40\,ms\ldots): el período no se alarga con el cómputo (\texttt{delay(20)} sí).
+    Si un ciclo se atrasa, el siguiente arranca enseguida y la grilla se mantiene.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Recorrido de un dato, del guante al servo}
+  \centering
+  \resizebox{\textwidth}{!}{%
+  \begin{tikzpicture}[every node/.style={font=\small},
+      paso/.style={bloque, minimum width=1.9cm, minimum height=1.05cm, font=\small, inner sep=2pt}]
+    % Carriles
+    \draw[carril] (0,1.9) rectangle (9.5,4.1);
+    \draw[carril] (0,-0.95) rectangle (9.5,0.95);
+    \draw[carril] (10.5,1.9) rectangle (20.2,4.1);
+    \draw[carril] (10.5,-0.95) rectangle (20.2,0.95);
+    \node[etiqueta] at (0.1,4.05) {Núcleo 1 · \texttt{tareaTransmision} (prio 2, cada 20 ms)};
+    \node[etiqueta] at (0.1,0.9) {Núcleo 0 · tarea Wi-Fi};
+    \node[etiqueta] at (10.6,4.05) {Núcleo 1 · \texttt{tareaControlActuadores} (prio 3)};
+    \node[etiqueta] at (10.6,0.9) {Núcleo 0 · tarea Wi-Fi};
+    \node[font=\normalsize\bfseries] at (4.75,4.55) {TRANSMISOR (guante)};
+    \node[font=\normalsize\bfseries] at (15.35,4.55) {RECEPTOR (mano)};
+    % Transmisor
+    \node[paso] (imu) at (1.2,2.8) {\textbf{1} IMU +\\filtro};
+    \node[paso] (adc) at (3.5,2.8) {\textbf{2} Dedos\\ADC $\times$16};
+    \node[paso] (paq) at (5.8,2.8) {\textbf{3} Paquete\\+ checksum};
+    \node[paso, fill=cajanaranja] (send) at (8.1,2.8) {\textbf{4} \texttt{esp\_now}\\\texttt{\_send()}};
+    \node[paso, fill=cajanaranja] (rtx) at (8.1,-0.15) {\textbf{5} Radio TX};
+    \node[paso, fill=cajagris, minimum width=1.6cm] (ack) at (4.9,-0.15) {\texttt{OnDataSent}\\(ACK)};
+    \draw[flecha] (imu) -- (adc);
+    \draw[flecha] (adc) -- (paq);
+    \draw[flecha] (paq) -- (send);
+    \draw[flecha] (send) -- node[right, font=\scriptsize, text=tenue]{copia} (rtx);
+    \draw[flecha, dashed, draw=tenue] (rtx) -- (ack);
+    % Receptor
+    \node[paso, fill=cajanaranja] (cb) at (13.3,-0.15) {\textbf{6} \texttt{OnDataRecv}\\valida};
+    \node[paso, fill=cajaamarilla, minimum width=1.5cm, minimum height=0.7cm] (cola) at (13.3,1.42) {Cola (1 elem.)};
+    \node[paso, fill=cajaverde] (rcv) at (13.3,2.8) {\textbf{7} Despierta\\con el paquete};
+    \node[paso, fill=cajaverde] (ctl) at (16.4,2.8) {\textbf{8} Failsafe\\limitador\\banda muerta};
+    \node[paso, fill=cajaverde] (pwm) at (18.9,2.8) {\textbf{9} \texttt{write()}\\$\rightarrow$ LEDC};
+    \draw[flecha] (cb) -- (cola);
+    \draw[flecha] (cola) -- (rcv);
+    \node[font=\scriptsize, text=tenue, anchor=west] at ([xshift=2mm]cola.east) {sobrescribe / despierta};
+    \draw[flecha] (rcv) -- (ctl);
+    \draw[flecha] (ctl) -- (pwm);
+    \draw[flecha] (pwm) -- ++(0,-0.95) node[anchor=east, xshift=-1mm, font=\footnotesize]{PWM a los servos};
+    % Enlace
+    \draw[flecha, very thick, draw=celeste, decorate,
+          decoration={snake, amplitude=1.2mm, segment length=4mm, post length=3mm}]
+         (rtx) -- (cb);
+    \node[font=\footnotesize, text=celeste] at (10,-1.3) {ESP-NOW · 19 bytes};
+  \end{tikzpicture}}
+  \vspace{1.5ex}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+    \begin{itemize}\scriptsize
+      \item \textbf{Dos cambios de núcleo:} en el transmisor de 1 a 0 (la pila Wi-Fi copia el paquete); en el receptor de 0 a 1, a través de la cola
+      \item Medición y envío están en la \textbf{misma tarea, en secuencia}: nunca sale un paquete con una medición a medio hacer
+    \end{itemize}
+    \column{0.48\textwidth}
+    \begin{itemize}\scriptsize
+      \item El ACK sólo actualiza la telemetría: no frena el flujo
+      \item Sin paquetes, la tarea del receptor igual despierta cada \SI{20}{\milli\second} para vigilar el enlace
+    \end{itemize}
+  \end{columns}
 \end{frame}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -311,24 +496,63 @@ struct MensajeBrazo {
 \end{frame}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}{Muñeca: orientación con la IMU}
-  \begin{columns}[c]
-    \column{0.5\textwidth}
-    \begin{itemize}
-      \item \textbf{Giróscopo:} mide velocidad angular; rápido, pero al integrar el \textit{bias} el ángulo \alert{deriva}
-      \item \textbf{Acelerómetro:} la gravedad da la inclinación; estable, pero \alert{ruidoso} y contaminado cuando la mano acelera
-      \item Se usan \textit{pitch} (flexión) y \textit{roll} (rotación)
-      \item El \textit{yaw} no se puede obtener: la gravedad no cambia al girar en torno a la vertical
-    \end{itemize}
+\begin{frame}{IMU: cómo mide el MPU6050}
+  \begin{columns}[T]
     \column{0.5\textwidth}
     \centering
-    \includegraphics[width=\linewidth]{Rotaciones.png}\\[1ex]
-    \[
-      \phi_{acc} = \operatorname{atan2}(a_y, a_z)
-    \]
-    \[
-      \theta_{acc} = \operatorname{atan2}\!\left(-a_x, \sqrt{a_y^2 + a_z^2}\right)
-    \]
+    \includegraphics[width=0.8\linewidth]{Giroscopio.png}\\[0.5ex]
+    \textbf{Giróscopo MEMS}\\
+    {\small Brazos vibrantes: al rotar, la fuerza de Coriolis los deforma $\Rightarrow$ mide \alert{velocidad angular} $\omega$}
+    \column{0.5\textwidth}
+    \centering
+    \includegraphics[width=0.8\linewidth]{Acelerometro.png}\\[0.5ex]
+    \textbf{Acelerómetro MEMS}\\
+    {\small Masa móvil entre peines fijos: la aceleración cambia la capacidad $\Rightarrow$ mide \alert{aceleración}, incluida la gravedad}
+  \end{columns}
+  \vspace{2ex}
+  \centering\small
+  \begin{tabular}{l c c c}
+    \toprule
+    & \textbf{Rango} & \textbf{Sensibilidad} & \textbf{Salida} \\
+    \midrule
+    Giróscopo & $\pm\SI{500}{\degree\per\second}$ & 65,5 LSB/(°/s) & 3 ejes, 16 bits \\
+    Acelerómetro & $\pm2\,g$ & 16384 LSB/$g$ & 3 ejes, 16 bits \\
+    \bottomrule
+  \end{tabular}\\[0.5ex]
+  {\scriptsize I\textsuperscript{2}C a \SI{400}{\kilo\hertz}, 14 bytes por lectura, DLPF en \SI{44}{\hertz} (sensibilidades: hoja de datos de InvenSense)}
+\end{frame}
+
+\begin{frame}{IMU: qué aporta cada sensor y por qué deriva}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+    \begin{block}{Giróscopo: rápido, pero deriva}
+      \small
+      Mide $\omega$; el ángulo sale de integrar, y un error constante (\textit{bias}) $b$ se acumula:
+      \[ \theta(t) = \int_0^t \omega\,dt \quad\Rightarrow\quad \theta_{error}(t) = b\,t \]
+      Ej.: $b = \SI{0.01}{rad/s} \approx \SI{0.57}{\degree\per\second}$ $\Rightarrow$ \alert{$\approx\SI{34}{\degree}$ en un minuto}\\
+      {\scriptsize (orden del \textit{bias} esperado según el plan de pruebas)}
+    \end{block}
+    \column{0.5\textwidth}
+    \begin{block}{Acelerómetro: absoluto, pero ruidoso}
+      \small
+      En reposo mide sólo la gravedad $\Rightarrow$ inclinación \textbf{sin deriva}:
+      \[ \begin{aligned}
+        \phi_{acc} &= \operatorname{atan2}(a_y, a_z) \\
+        \theta_{acc} &= \operatorname{atan2}\!\left(-a_x, \sqrt{a_y^2 + a_z^2}\right)
+      \end{aligned} \]
+      Cuando la mano acelera, $\vec a \neq \vec g$: \alert{ruido} en el ángulo
+    \end{block}
+  \end{columns}
+  \vspace{1ex}
+  \begin{columns}[c]
+    \column{0.4\textwidth}
+    \centering\includegraphics[width=0.85\linewidth]{Rotaciones.png}
+    \column{0.55\textwidth}
+    \begin{itemize}\small
+      \item Se usan \textit{pitch} (flexión) y \textit{roll} (rotación)
+      \item \textit{Yaw}: la gravedad no cambia al girar en torno a la vertical $\Rightarrow$ no se puede medir sin magnetómetro
+      \item Al encender, 500 lecturas en reposo dan el \textit{bias} que luego se resta
+    \end{itemize}
   \end{columns}
 \end{frame}
 
@@ -356,9 +580,9 @@ struct MensajeBrazo {
   \resizebox{0.95\textwidth}{!}{%
   \begin{tikzpicture}[node distance=0.6cm and 1.5cm, every node/.style={font=\small}]
     \node[bloque] (radio) {Radio\\ESP-NOW};
-    \node[bloque, right=0.8cm of radio, fill=orange!10] (cb) {Callback \texttt{OnDataRecv}\\(tarea Wi-Fi, núcleo 0)\\Valida tamaño,\\firma y checksum};
-    \node[bloque, right=of cb, fill=yellow!15] (cola) {Cola\\(1 elemento)};
-    \node[bloque, right=of cola, fill=green!10] (ctrl) {Tarea de control\\(núcleo 1)\\Failsafe, trayectoria\\y escritura PWM};
+    \node[bloque, right=0.8cm of radio, fill=cajanaranja] (cb) {Callback \texttt{OnDataRecv}\\(tarea Wi-Fi, núcleo 0)\\Valida tamaño,\\firma y checksum};
+    \node[bloque, right=of cb, fill=cajaamarilla] (cola) {Cola\\(1 elemento)};
+    \node[bloque, right=of cola, fill=cajaverde] (ctrl) {Tarea de control\\(núcleo 1)\\Failsafe, trayectoria\\y escritura PWM};
     \node[bloque, right=0.8cm of ctrl] (servos) {7 servos};
     \draw[flecha] (radio) -- (cb);
     \draw[flecha] (cb) -- node[below, font=\footnotesize]{sobrescribe} (cola);
@@ -366,22 +590,33 @@ struct MensajeBrazo {
     \draw[flecha] (ctrl) -- (servos);
   \end{tikzpicture}}
   \vspace{2ex}
-  \begin{itemize}
-    \item \textbf{Cola de 1 elemento} con \texttt{xQueueOverwrite}: copia atómica (sin condición de carrera) y buzón del \emph{último} paquete (sin retardo acumulado)
-    \item La tarea \textbf{despierta al llegar el paquete} (v2.2.0); si no llega, vence a los \SI{20}{\milli\second} e itera igual
-    \item Objetivos saturados a los límites mecánicos: segunda protección ante valores fuera de rango
-  \end{itemize}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+    \textbf{¿Por qué una cola y no una variable global?}
+    \begin{itemize}\small
+      \item El callback (núcleo 0) y la tarea (núcleo 1) corren \alert{al mismo tiempo}
+      \item Con una global, la tarea podría leer un paquete a medio copiar: dedos nuevos y muñeca vieja
+      \item La cola copia los 19 bytes de forma protegida
+    \end{itemize}
+    \column{0.48\textwidth}
+    \textbf{¿Por qué de un solo elemento?}
+    \begin{itemize}\small
+      \item Sólo importa el \textbf{último} paquete; una cola larga acumularía retardo
+      \item \texttt{xQueueOverwriteFromISR}: pisa al anterior y nunca bloquea al callback
+      \item La tarea \textbf{despierta al llegar el paquete} (v2.2.0); si no llega, vence a los \SI{20}{\milli\second} e itera igual
+    \end{itemize}
+  \end{columns}
 \end{frame}
 
 \begin{frame}{Receptor: máquina de estados y failsafe}
   \centering
   \resizebox{0.85\textwidth}{!}{%
   \begin{tikzpicture}[node distance=1.6cm and 2.2cm, every node/.style={font=\small},
-    estado/.style={draw, rounded corners=8pt, align=center, minimum width=3cm, minimum height=1.1cm, fill=blue!5}]
+    estado/.style={draw=tenue, rounded corners=8pt, align=center, minimum width=3cm, minimum height=1.1cm, fill=cajaazul, text=texto}]
     \node[estado] (sync) {\texttt{ESPERANDO\_SYNC}\\Servos en reposo};
-    \node[estado, right=of sync, fill=green!10] (normal) {\texttt{OPERACION\_NORMAL}\\Sigue al guante};
-    \node[estado, below=of normal, fill=red!10] (fs) {\texttt{FAILSAFE\_SIN\_SENAL}\\Objetivos en reposo};
-    \node[estado, right=of fs, fill=gray!15, dashed] (desac) {Servos desacoplados\\(sin PWM)};
+    \node[estado, right=of sync, fill=cajaverde] (normal) {\texttt{OPERACION\_NORMAL}\\Sigue al guante};
+    \node[estado, below=of normal, fill=cajaroja] (fs) {\texttt{FAILSAFE\_SIN\_SENAL}\\Objetivos en reposo};
+    \node[estado, right=of fs, fill=cajagris, dashed] (desac) {Servos desacoplados\\(sin PWM)};
     \draw[flecha] ($(sync.north)+(0,0.7)$) -- node[right, font=\footnotesize]{Inicio} (sync);
     \draw[flecha] (sync) -- node[above, font=\footnotesize]{Paquete válido} (normal);
     \draw[flecha] ($(normal.south)+(0.5,0)$) -- node[right, font=\footnotesize, align=left]{$>\SI{250}{\milli\second}$\\sin paquetes} ($(fs.north)+(0.5,0)$);
@@ -428,7 +663,7 @@ struct MensajeBrazo {
 \end{frame}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{frame}{Evolución del diseño: cada cambio, un problema observado}
+\begin{frame}{Evolución: cada cambio, un problema observado}
   \centering\small
   \begin{tabular}{l p{6.2cm} p{4.6cm}}
     \toprule
@@ -450,28 +685,9 @@ struct MensajeBrazo {
   \end{itemize}
 \end{frame}
 
-\begin{frame}{¿Por qué complementario y no Kalman?}
-  \begin{columns}[T]
-    \column{0.5\textwidth}
-    \textbf{Lo que se encontró en la v1.0.0}
-    \begin{enumerate}\small
-      \item Signo del giróscopo de \textit{pitch} invertido: giróscopo y acelerómetro tiraban en sentidos opuestos
-      \item Variable sin inicializar en el \textit{roll}
-      \item Arranque desde \SI{0}{\degree}, sin estimar el \textit{bias}
-      \item Truncado a enteros antes del mapeo
-    \end{enumerate}
-    \column{0.5\textwidth}
-    \textbf{Por qué se cambió el filtro}
-    \begin{itemize}\small
-      \item Un Kalman bien sintonizado \alert{no es peor}
-      \item Pero para 2 ángulos de inclinación a \SI{50}{\hertz} el complementario es equivalente en la práctica
-      \item \textbf{Un parámetro} ($\alpha$) con interpretación directa ($\tau \approx \SI{1}{\second}$), en lugar de 3 covarianzas
-      \item Más fácil de verificar
-    \end{itemize}
-  \end{columns}
-\end{frame}
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Resultados}
+
 \begin{frame}{Latencia}
   \begin{columns}[T]
     \column{0.58\textwidth}
@@ -495,13 +711,13 @@ struct MensajeBrazo {
     \column{0.4\textwidth}
     \textbf{Medición por cable}
     \begin{itemize}\small
-      \item GPIO23 del transmisor marca el inicio de cada ciclo
-      \item El receptor captura el flanco por interrupción (GPIO34)
-      \item Por paquete: tiempo de radio y total
-      \item Sin osciloscopio; estadística en MATLAB
+      \item El GPIO 2 del transmisor sube antes de cada envío
+      \item El receptor captura el flanco por interrupción (GPIO 4) y resta ese instante después de escribir los servos
+      \item Ambos tiempos con el reloj del receptor: no hace falta sincronizar las placas
+      \item Mide sólo \textbf{enlace + receptor}
     \end{itemize}
     \vspace{1ex}
-    \pendiente{medición en curso: completar con media, máximo e histograma (P11)}
+    \pendiente{completar con media, máximo e histograma (P11)}
   \end{columns}
 \end{frame}
 
@@ -566,12 +782,12 @@ struct MensajeBrazo {
     \toprule
     \textbf{Prueba} & \textbf{Resultado} & \\
     \midrule
-    Consumo en reposo y con carga (P02, P03) & \SI{75}{\milli\ampere} a \SI{0.72}{\ampere} a \SI{12}{\volt} & \checkmark \\
-    Tensión de \SI{5}{\volt} de los servos (P04) & Variación imperceptible & \checkmark \\
-    Calibración sin transmisión (P09) & La mano va a reposo y se recupera & \checkmark \\
-    Respuesta del sistema con MATLAB (P16) & Seguimiento en dedos y muñeca & \checkmark \\
+    Consumo en reposo y con carga (P02, P03) & \SI{75}{\milli\ampere} a \SI{0.72}{\ampere} a \SI{12}{\volt} & {\color{verde}\checkmark} \\
+    Tensión de \SI{5}{\volt} de los servos (P04) & Variación imperceptible & {\color{verde}\checkmark} \\
+    Calibración sin transmisión (P09) & La mano va a reposo y se recupera & {\color{verde}\checkmark} \\
+    Respuesta del sistema con MATLAB (P16) & Seguimiento en dedos y muñeca & {\color{verde}\checkmark} \\
     \midrule
-    Latencia de punta a punta (P11) & \pendiente{medición por cable en curso} & \\
+    Latencia del enlace (P11) & \pendiente{medición por cable en curso} & \\
     Muñeca: deriva y retorno a la posición (P13) & \pendiente{a realizar} & \\
     Failsafe al apagar el guante (P10) & \pendiente{registrar} & \\
     \bottomrule
@@ -579,6 +795,8 @@ struct MensajeBrazo {
 \end{frame}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Cierre}
+
 \begin{frame}{Conclusiones}
   \begin{itemize}
     \item Telerobótica de bajo costo: se replican los 5 dedos y 2 grados de libertad de la muñeca por ESP-NOW; con la v2.3.0 la mano sigue la orden, incluidas las posiciones intermedias
@@ -590,27 +808,18 @@ struct MensajeBrazo {
   \end{itemize}
 \end{frame}
 
-\begin{frame}{Trabajo futuro}
-  \begin{itemize}
-    \item \textbf{Medir la latencia real} de punta a punta (en curso, método por cable)
-    \item Repetir la deriva y el retorno de la muñeca con la v2.3.0
-    \item \textbf{Subir las frecuencias:} envío a \SI{100}{\hertz} (escalando el limitador con el $\Delta t$ real) y PWM de \SIrange{100}{200}{\hertz} en los MG946R, vigilando temperatura
-    \item Filtro RC en las entradas del ADC del guante
-    \item Realimentación háptica al operador
-  \end{itemize}
-\end{frame}
-
 \begin{frame}[plain]
   \centering\vfill
-  {\Huge\color{unsazul}\textbf{¡Gracias!}}\\[3ex]
+  {\Huge\color{acento}\textbf{¡Gracias!}}\\[3ex]
   {\Large Preguntas}\\[4ex]
-  \small Joaquín Petruf \quad Sebastián Amoroso
+  {\color{tenue}\small Joaquín Petruf \quad Sebastián Amoroso}
   \vfill
 \end{frame}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % RESPALDO: para preguntas del jurado (no se exponen)
 \appendix
+\section{Respaldo}
 
 \begin{frame}{Respaldo: filtro de Kalman (v1.0.0)}
   Estado: ángulo $\theta$ y \textit{bias} del giróscopo $b$
@@ -681,7 +890,7 @@ struct MensajeBrazo {
     \item[¿Qué es el corte al final de la captura con servo bloqueado?] El instante en que se soltó el agarre del servo; no es una falla.
     \item[¿Por qué no se mide el \textit{yaw}?] El acelerómetro no lo ve y sólo con el giróscopo deriva; haría falta un magnetómetro.
     \item[¿Otro operador?] Se recalibra el guante (\texttt{c} por consola); la mano no cambia.
-    \item[¿GPIO12 en el receptor?] Es pin de \textit{strapping}; no dio problemas, pero es lo primero a revisar ante una falla de arranque.
+    \item[¿Por qué el anular está en el GPIO 23?] Estaba en el GPIO 12 (pin de \textit{strapping}) y se movía con dificultad; el mismo servo en el GPIO 13 o el 23 respondió mucho mejor, así que la falla seguía al pin. Se pasó al 23, que no es de \textit{strapping}.
   \end{description}
 \end{frame}
 
