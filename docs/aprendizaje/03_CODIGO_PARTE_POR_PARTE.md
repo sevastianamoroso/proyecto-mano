@@ -342,5 +342,5 @@ Porque algunos servos quedaron montados al revés. La inversión se aplica sólo
 resto del código sigue con la misma convención.
 
 **¿Cuánta latencia tiene el sistema?**
-Estimamos ~30 ms de media desde el sensor hasta la orden al servo, más lo que tarda el servo en moverse.
-**Es un cálculo a partir del código, no una medición**; medirla es uno de los próximos pasos.
+Medida de punta a punta (prueba P11): unos **24 ms de media**, coherente con la estimación de ~30 ms a
+partir del código. A eso se suma lo que tarda el servo en moverse (~100 ms cada 60° en el SG90).

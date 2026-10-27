@@ -24,11 +24,8 @@ Actualizado: 2026-10-26. Archivo pensado para retomar desde otra PC u otra sesi�
   a último momento; el código y los documentos ya dicen GPIO 23.
 - [ ] Video de respaldo de la demo (diapositiva 4 de la presentación).
 - [ ] Revisar la presentación completa en el proyector o a pantalla completa.
-- [ ] Guía de estudio (`docs/aprendizaje/`): que el usuario la lea; agregar más preguntas y el caso del
-  GPIO 12 → 23 como ejemplo de diagnóstico (intercambiar conectores para ver si la falla sigue al pin o al servo).
-  Hallazgos que pueden salir en la defensa (ya están en las preguntas de práctica): el receptor no filtra por
-  MAC de origen; la secuencia no se usa para contar pérdidas; en el callback, `xQueueOverwriteFromISR` debería
-  ser `xQueueOverwrite`.
+- [ ] Guía de estudio (`docs/aprendizaje/`): que el usuario la lea, en especial `04_PREGUNTAS_DEFENSA.md`
+  (60 preguntas, agregada el 2026-10-27, con el caso GPIO 12 → 23 y las limitaciones conocidas).
 
 ## Opcional / después de la defensa
 

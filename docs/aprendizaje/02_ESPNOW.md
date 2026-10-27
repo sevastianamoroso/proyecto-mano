@@ -219,8 +219,8 @@ una conexión. ESP-NOW no necesita nada de eso y está pensado para paquetes chi
 Depende del entorno y de las antenas. No lo medimos; es una de las cosas que quedan por caracterizar.
 
 **¿Cuánto tarda un paquete en llegar?**
-Los valores típicos reportados para ESP-NOW son de unos pocos milisegundos. Nuestro cálculo de la
-cadena completa da ~30 ms de media, pero **es una estimación a partir del código, no una medición**.
+Los valores típicos reportados para ESP-NOW son de unos pocos milisegundos. La cadena completa (del
+potenciómetro al pulso PWM del servo) la medimos en la prueba P11: unos **24 ms de media**.
 
 **¿Cómo sabe el transmisor si el paquete llegó?**
 Por el ACK que devuelve la radio del receptor: el callback `OnDataSent` recibe `SUCCESS` o falla, y la

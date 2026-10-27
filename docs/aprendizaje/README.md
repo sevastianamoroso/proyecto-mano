@@ -12,6 +12,7 @@ enlaza al documento existente.
 | 1 | [`01_FREERTOS.md`](01_FREERTOS.md) | Qué es un sistema operativo de tiempo real, tareas, prioridades, núcleos, colas y cómo los usamos |
 | 2 | [`02_ESPNOW.md`](02_ESPNOW.md) | Qué es ESP-NOW, cómo se envía y recibe un paquete, por qué lo elegimos frente a Wi-Fi o Bluetooth |
 | 3 | [`03_CODIGO_PARTE_POR_PARTE.md`](03_CODIGO_PARTE_POR_PARTE.md) | Cada bloque del protocolo, el transmisor y el receptor, con la razón de cada decisión |
+| 4 | [`04_PREGUNTAS_DEFENSA.md`](04_PREGUNTAS_DEFENSA.md) | 60 preguntas y respuestas: proyecto, hardware, pruebas, limitaciones, conocimiento complementario y la demo |
 
 Cada archivo termina con **preguntas de práctica** del tipo que puede hacer el jurado, con una respuesta
 corta. Conviene taparlas y tratar de responder primero.
