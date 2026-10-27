@@ -1,6 +1,17 @@
 \section{Estructura del firmware}
 \label{sec:estructura_firmware}
 
+\subsection{Código fuente}
+\label{sec:codigo_fuente}
+
+El código completo del proyecto está disponible en un repositorio público de GitHub:
+
+\begin{center}
+\url{https://github.com/sevastianamoroso/proyecto-mano}
+\end{center}
+
+El repositorio contiene el firmware del guante (\texttt{Transmisor/}) y de la mano (\texttt{Receptor/}), el receptor modificado para la medición de latencia (\texttt{Receptor\_Latencia/}), el plan y el registro de pruebas, la documentación del firmware y las fuentes de este informe. Cada versión del firmware descrita en la sección~\ref{sec:evolucion} está marcada con una etiqueta de git (\texttt{v1.0.0} a \texttt{v2.3.0}), de modo que cualquiera de ellas puede recuperarse y volver a grabarse en los ESP32. Este apéndice describe la versión 2.3.0.
+
 \subsection{Cómo leer los diagramas}
 
 El firmware está escrito en C++ para Arduino, pero \textbf{no define clases propias}: está organizado en variables globales, funciones y tareas de FreeRTOS, repartidos en dos programas (\texttt{Transmisor.ino} y \texttt{Receptor.ino}) que comparten el archivo \texttt{ProtocoloBrazo.h}. Para mostrar su estructura se usa la notación de los diagramas de clases de UML, agrupando las variables y funciones que cumplen una misma responsabilidad en un \emph{módulo}. Cada caja tiene tres partes:

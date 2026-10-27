@@ -13,13 +13,27 @@ Los principales resultados y aprendizajes del proyecto son:
     \item \textbf{Alimentación.} Las mediciones con la versión 2.3.0 muestran que el receptor consume a \SI{12}{\volt} entre \SIrange{75}{100}{\milli\ampere} en reposo y menos de \SI{0.75}{\ampere} en los picos registrados, muy por debajo de la capacidad de la fuente y del regulador. Separar la alimentación del ESP32 (por USB) de la de los servos evita que un pico de corriente de los motores reinicie el microcontrolador.
 \end{itemize}
 
-Entre las limitaciones del sistema actual se encuentran la falta de realimentación de fuerza al operador, la imposibilidad de medir el giro sobre el eje vertical (\textit{yaw}) con el MPU6050, que no tiene magnetómetro, y la dependencia de una calibración inicial de los dedos para cada operador. Además, de la latencia de punta a punta se midió el valor medio, pero no se caracterizó su distribución completa.
+Como toda primera versión, el sistema tiene limitaciones propias del diseño elegido: no hay realimentación de fuerza al operador, el MPU6050 no tiene magnetómetro y por eso no permite medir el giro sobre el eje vertical (\textit{yaw}), y los dedos requieren una calibración inicial para cada operador.
 
 \subsection{Trabajo futuro}
 
+El alcance de este proyecto fue construir la cadena completa de telecomando (captura del movimiento en el guante, enlace inalámbrico y réplica en la mano) y verificar que funciona en tiempo real y de forma segura. Ese objetivo se cumplió. Los puntos siguientes no formaban parte de ese alcance: no hacen falta para validar el sistema, pero son la continuación natural del trabajo, ya sea por parte de este mismo equipo o de otros estudiantes que tomen el proyecto como punto de partida. Para eso, el código y la documentación completos están disponibles en el repositorio indicado en la sección~\ref{sec:codigo_fuente}.
+
+\paragraph{Caracterización más profunda del sistema actual.}
 \begin{itemize}
-    \item \textbf{Mediciones exhaustivas de la latencia} (sección~\ref{sec:latencia}): su distribución completa (máximos y percentiles), su variación con la distancia, los obstáculos y la interferencia, y el camino de la muñeca, que incluye el filtro interno del MPU6050.
-    \item \textbf{Caracterizar la muñeca en reposo} con la versión actual: ruido, deriva a largo plazo y repetibilidad al volver a una misma postura.
-    \item \textbf{Aumentar las frecuencias de trabajo y evaluar la respuesta de los servos.} Por un lado, subir la tasa de envío a \SI{100}{\hertz}; como el limitador de velocidad actúa por iteración, en ese caso debería escalarse con el tiempo real entre iteraciones para que la velocidad máxima no se duplique. Por otro, probar un PWM de \SIrange{100}{200}{\hertz} en los MG946R, para los que el fabricante sólo especifica \SI{50}{\hertz}, vigilando la temperatura y el comportamiento de los servos.
-    \item \textbf{Investigar otras mejoras posibles} a partir de los resultados de estas pruebas.
+    \item \textbf{Estadística completa de la latencia} (sección~\ref{sec:latencia}). Para los objetivos de este trabajo alcanzó con el valor medio, que ya muestra que el enlace y el procesamiento son mucho más rápidos que los propios servos. Un estudio específico podría relevar su distribución (máximos y percentiles), su variación con la distancia, los obstáculos y la interferencia, y el camino de la muñeca, que incluye el filtro interno del MPU6050.
+    \item \textbf{Comportamiento de la muñeca a largo plazo}: ruido en reposo, deriva durante períodos prolongados y repetibilidad al volver a una misma postura. Es relevante para aplicaciones en las que la mano deba sostener una posición durante mucho tiempo.
+\end{itemize}
+
+\paragraph{Mejoras de desempeño.}
+\begin{itemize}
+    \item \textbf{Mayor frecuencia de trabajo.} Subir la tasa de envío a \SI{100}{\hertz}; como el limitador de velocidad actúa por iteración, en ese caso debería escalarse con el tiempo real entre iteraciones para que la velocidad máxima no se duplique.
+    \item \textbf{PWM más rápido en los servos de la muñeca.} Probar \SIrange{100}{200}{\hertz} en los MG946R, para los que el fabricante sólo especifica \SI{50}{\hertz}, vigilando la temperatura y el comportamiento de los servos.
+\end{itemize}
+
+\paragraph{Ampliaciones de funcionalidad.}
+\begin{itemize}
+    \item \textbf{Realimentación de fuerza} al operador, por ejemplo con sensores en los dedos de la mano y actuadores en el guante.
+    \item \textbf{Medición del giro en \textit{yaw}} reemplazando el MPU6050 por una unidad inercial con magnetómetro.
+    \item \textbf{Calibración guardada por operador} en la memoria no volátil del transmisor, para no repetirla en cada uso.
 \end{itemize}

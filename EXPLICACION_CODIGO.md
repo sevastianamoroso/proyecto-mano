@@ -1,6 +1,6 @@
 # Explicación Detallada del Firmware de Telerrobótica
 
-**Proyecto:** Movilidad de Mano Impresa en 3D en Base al Sensado de los Movimientos (Telerrobótica)
+**Proyecto:** Mano Robótica Telecomandada con Sensado de Movimientos
 **Institución:** Departamento de Ingeniería Eléctrica y Computadoras (DIEC) – Universidad Nacional del Sur (UNS)
 **Autores:** Joaquín Petruf, Sebastián Amoroso
 **Versión de firmware documentada:** `v2.3.0` (`v2.2.0` validada en hardware + pausa de transmisión durante la calibración)
