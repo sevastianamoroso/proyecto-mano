@@ -17,6 +17,7 @@ Un guante transmisor (5 potenciómetros + MPU6050) comanda por ESP-NOW una mano 
 | `EXPLICACION_CODIGO.md` | Explicación detallada del firmware v2.3.0, módulo por módulo, con la evolución desde la v1.0.0 |
 | `docs/DIAGRAMAS.md` | Funcionamiento en diagramas (Mermaid) |
 | `docs/aprendizaje/` | Guía de estudio para la defensa: FreeRTOS, ESP-NOW y el porqué de cada parte del código, con preguntas de práctica |
+| `cad/` | Modelos 3D de Solid Edge (`.par`) del guante (`Transmisor/`) y de la mano (`Receptor/`); en `Para Imprimir/` cada pieza exportada a `.3mf` |
 | `informe/` | Informe final en LaTeX (proyecto de Overleaf). Ver [`informe/LEEME.md`](informe/LEEME.md) |
 
 ## Versiones
