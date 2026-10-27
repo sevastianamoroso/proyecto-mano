@@ -1,16 +1,9 @@
-/**
- * @file Receptor.ino
- * @brief Firmware de Recepción y Control Cinemático Robótico con FreeRTOS y ESP32
- * @author Revisión de Grado en Ingeniería Electrónica y Sistemas Embebidos
- * 
- * Mejoras clave implementadas:
- *  - Arquitectura orientada a eventos con Colas FreeRTOS (desacoplo total de ISR WiFi y Actuadores)
- *  - Eliminación de Race Conditions (cero variables globales modificadas desde callback)
- *  - Generador de trayectoria con Limitador de Velocidad (Slew-Rate Limiter) para proteger engranajes y piezas 3D
- *  - Banda muerta (Deadband) en todos los servos para eliminar el zumbido (jitter/hunting) y consumo estático
- *  - Máquina de Estados con Failsafe activo ante pérdida de enlace RF o reinicio del transmisor
- *  - Retorno suave a pose Home neutra y desacople de torque (detach) en reposo prolongado
- */
+// Receptor.ino - firmware de la mano.
+//
+// Recibe por ESP-NOW los ángulos que manda el guante y mueve los 7 servos
+// (5 dedos y 2 de la muñeca). No hace ninguna cuenta con los sensores: sólo
+// revisa que el paquete llegue sano, limita la velocidad para no castigar la
+// mecánica y, si se corta el enlace, lleva la mano a una posición de reposo.
 
 #include <Arduino.h>
 #include <WiFi.h>
@@ -20,9 +13,8 @@
 
 #include "ProtocoloBrazo.h"
 
-// ==========================================
-// CONFIGURACIÓN DE PINES DE SERVOMOTORES
-// ==========================================
+// ---------- Pines de los servos ----------
+
 const int PIN_SERVO_PULGAR        = 25;
 const int PIN_SERVO_INDICE        = 26;
 const int PIN_SERVO_MEDIO         = 27;
@@ -36,67 +28,69 @@ const int PINES_SERVOS_DEDOS[TOTAL_DEDOS] = {
     PIN_SERVO_ANULAR, PIN_SERVO_MENIQUE
 };
 
-// ==========================================
-// PARÁMETROS CINEMÁTICOS Y DE CONTROL
-// ==========================================
-// Período de actualización del lazo de actuación (50 Hz = 20 ms)
+// ---------- Parámetros ----------
+
+// Período de la tarea de control: 20 ms = 50 Hz, igual que el guante
 const TickType_t PERIODO_CONTROL_MS = 20;
 
-// Timeout para detección de pérdida de enlace (ms)
+// Si pasan 250 ms sin paquetes (unos 12 perdidos seguidos) damos el enlace por caído
 const uint32_t TIMEOUT_FAILSAFE_MS = 250;
 
-// Banda muerta angular para supresión de jitter/hunting (grados)
+// Diferencias menores a esto (°) no se corrigen; si no, el servo vive temblando
+// entre dos posiciones y zumbando
 const float DEADBAND_DEDOS   = 1.0f;
 const float DEADBAND_MUNIECA = 1.2f;
 
-// Velocidad angular máxima permitida por ciclo (Slew-Rate Limiting a 50 Hz)
-// SG90 (dedos): 8.0° / 20ms = 400°/segundo (el SG90 sin carga llega a ~600°/s)
+// Cuánto puede moverse cada servo en un ciclo de 20 ms (°). Es el limitador de
+// velocidad: evita golpes en los engranajes y en las piezas impresas.
+// Dedos (SG90): 8° por ciclo = 400°/s; el SG90 sin carga llega a ~600°/s
 const float VEL_MAX_DEDOS = 8.0f;
-// MG946R (muñeca vertical - mayor inercia y carga): 4.0° / 20ms = 200°/segundo
+// Muñeca vertical (MG946R): carga con todo el peso de la mano, así que más despacio, 200°/s
 const float VEL_MAX_MUNIECA_VERT = 4.0f;
-// MG946R (muñeca rotacional): 5.0° / 20ms = 250°/segundo
+// Muñeca rotacional (MG946R): 250°/s
 const float VEL_MAX_MUNIECA_ROT = 5.0f;
 
-// Sentido de montaje de cada servo de dedo (pulgar..meñique).
-// true = el servo cierra el dedo al BAJAR el ángulo: se espeja dentro de 25..90°.
-// Ajustar por dedo en la prueba C3: con la mano del guante abierta, el dedo robot debe quedar abierto.
+// Según cómo quedó montado cada servo (pulgar..meñique), algunos cierran el dedo
+// bajando el ángulo en vez de subiéndolo. En esos va true y se espeja dentro de 25..90°.
+// Se ajusta por dedo en la prueba C3: con el guante abierto, el dedo de la mano tiene que quedar abierto.
 const bool INVERTIR_DEDO[TOTAL_DEDOS] = {true, true, true, true, true};
 
-// Posiciones neutras de reposo seguro (Home)
-const float HOME_DEDOS        = 25.0f; // Mano abierta relajada
-const float HOME_MUNIECA_VERT = 57.0f; // Posición media horizontal
-const float HOME_MUNIECA_ROT  = 90.0f; // Muñeca en ángulo neutro
+// Posición de reposo (a donde va la mano al arrancar o si se corta el enlace)
+const float HOME_DEDOS        = 25.0f; // mano abierta
+const float HOME_MUNIECA_VERT = 57.0f; // muñeca derecha
+const float HOME_MUNIECA_ROT  = 90.0f; // sin girar
 
-// Límites mecánicos absolutos (protección de la mano 3D ante paquetes fuera de rango)
+// Topes de cada articulación. El guante ya manda valores dentro de estos rangos,
+// pero los volvemos a recortar acá por si llega cualquier cosa.
 const float LIM_DEDOS_MIN = 25.0f,        LIM_DEDOS_MAX = 90.0f;
 const float LIM_MUNIECA_VERT_MIN = 25.0f, LIM_MUNIECA_VERT_MAX = 90.0f;
 const float LIM_MUNIECA_ROT_MIN = 0.0f,   LIM_MUNIECA_ROT_MAX = 180.0f;
 
-// Ángulo lógico del dedo (25 = abierto, 90 = cerrado) -> ángulo físico del servo
+// Pasa del ángulo del dedo (25 = abierto, 90 = cerrado) al ángulo que hay que
+// mandarle al servo, teniendo en cuenta si está invertido
 static inline int anguloServoDedo(int i, float pos) {
     return (int)round(INVERTIR_DEDO[i] ? (LIM_DEDOS_MIN + LIM_DEDOS_MAX - pos) : pos);
 }
 
-// ==========================================
-// MÁQUINA DE ESTADOS FINITOS (FSM)
-// ==========================================
+// ---------- Estados ----------
+
 enum EstadoSistema {
-    ESTADO_ESPERANDO_SYNC,
-    ESTADO_OPERACION_NORMAL,
-    ESTADO_FAILSAFE_SIN_SENAL
+    ESTADO_ESPERANDO_SYNC,     // recién arrancado, todavía no llegó ningún paquete
+    ESTADO_OPERACION_NORMAL,   // llegan paquetes y la mano sigue al guante
+    ESTADO_FAILSAFE_SIN_SENAL  // se cortó el enlace: la mano vuelve al reposo
 };
 
-// ==========================================
-// OBJETOS Y VARIABLES DE CONTROL
-// ==========================================
+// ---------- Variables globales ----------
+
 Servo servoDedos[TOTAL_DEDOS];
 Servo servoMuniecaVert;
 Servo servoMuniecaRot;
 
-// Cola FreeRTOS para desacoplamiento seguro de datos de radio
+// Por acá pasan los paquetes del callback a la tarea de control
 QueueHandle_t colaMensajesBrazo = NULL;
 
-// Posiciones angulares actuales y objetivos (con punto flotante para integración suave)
+// Para cada servo: dónde está ahora y a dónde tiene que llegar. Son float para
+// que el avance de a poco del limitador no se pierda redondeando.
 float posActualDedos[TOTAL_DEDOS];
 float posObjetivoDedos[TOTAL_DEDOS];
 
@@ -110,42 +104,44 @@ EstadoSistema estadoActual = ESTADO_ESPERANDO_SYNC;
 uint32_t marcaTiempoUltimoPaquete = 0;
 bool servosAcoplados = false;
 
-// Prototipos de funciones
 void acoplarServos();
 void desacoplarServos();
 void tareaControlActuadores(void* pvParameters);
 
-// ==========================================
-// CALLBACK DE ESP-NOW (Rx) - EJECUTADO EN CORE 0
-// ==========================================
+// ---------- Callback de ESP-NOW ----------
+
+// Lo llama la pila WiFi (en el núcleo 0) cada vez que llega un paquete. Tiene que
+// ser corto: revisa el paquete y lo deja en la cola, nada más. La firma cambió
+// en el ESP-IDF 5, por eso el #if.
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
 void OnDataRecv(const esp_now_recv_info_t *esp_now_info, const uint8_t *incomingData, int len) {
 #else
 void OnDataRecv(const uint8_t* mac, const uint8_t* incomingData, int len) {
 #endif
     if (len != sizeof(MensajeBrazo)) {
-        return; // Descartar tramas con tamaño incorrecto
+        return; // no es un paquete nuestro
     }
 
     const MensajeBrazo* paquete = reinterpret_cast<const MensajeBrazo*>(incomingData);
 
-    // Validación formal de cabecera mágica y suma de verificación
+    // Cabecera y checksum: si algo no cierra, el paquete se tira
     if (!validarPaqueteBrazo(*paquete)) {
-        return; // Trama corrompida por RF descartada
+        return;
     }
 
-    // Transferencia thread-safe a la cola de FreeRTOS sin esperas bloqueantes
+    // La cola tiene lugar para un solo paquete y se sobrescribe: si la tarea todavía
+    // no leyó el anterior, se pierde el viejo y queda el más nuevo, que es el que importa
     if (colaMensajesBrazo != NULL) {
         BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-        // Sobreescribir el valor en cola si el consumidor aún no lo procesó
         xQueueOverwriteFromISR(colaMensajesBrazo, paquete, &xHigherPriorityTaskWoken);
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
     }
 }
 
-// ==========================================
-// GESTIÓN DE ATTACH / DETACH DE SERVOS
-// ==========================================
+// ---------- Prender y apagar los servos ----------
+
+// attach() arranca el PWM. Antes de eso cada servo recibe la posición actual,
+// para que no pegue un salto al engancharse.
 void acoplarServos() {
     if (servosAcoplados) return;
 
@@ -167,6 +163,8 @@ void acoplarServos() {
     Serial.println("[SERVOS] PWM habilitado y actuadores acoplados.");
 }
 
+// Sin PWM los servos dejan de hacer fuerza: no consumen ni calientan mientras
+// la mano está en reposo esperando al guante
 void desacoplarServos() {
     if (!servosAcoplados) return;
 
@@ -180,15 +178,14 @@ void desacoplarServos() {
     Serial.println("[SERVOS] Actuadores desacoplados (Sleep Mode / Ahorro Térmico).");
 }
 
-// ==========================================
-// SETUP
-// ==========================================
+// ---------- setup ----------
+
 void setup() {
     Serial.begin(115200);
     delay(500);
     Serial.println("\n[SISTEMA] Iniciando Receptor y Controlador Cinemático...");
 
-    // Inicializar posiciones en Home seguro
+    // Arrancamos con todo en la posición de reposo
     for (int i = 0; i < TOTAL_DEDOS; i++) {
         posActualDedos[i]   = HOME_DEDOS;
         posObjetivoDedos[i] = HOME_DEDOS;
@@ -198,25 +195,25 @@ void setup() {
     posActualMuniecaRot    = HOME_MUNIECA_ROT;
     posObjetivoMuniecaRot  = HOME_MUNIECA_ROT;
 
-    // Asignación de temporizadores de hardware LEDC para ESP32Servo
+    // ESP32Servo genera el PWM con los timers del periférico LEDC; le reservamos los 4
     ESP32PWM::allocateTimer(0);
     ESP32PWM::allocateTimer(1);
     ESP32PWM::allocateTimer(2);
     ESP32PWM::allocateTimer(3);
 
-    // Acoplar servos en posición neutra
     acoplarServos();
 
-    // Crear cola de mensajes (longitud 1 con capacidad de sobreescritura)
+    // Cola de un solo lugar (ver el callback)
     colaMensajesBrazo = xQueueCreate(1, sizeof(MensajeBrazo));
     if (colaMensajesBrazo == NULL) {
         Serial.println("[ERROR FATAL] No se pudo crear la cola FreeRTOS.");
         while (1) delay(1000);
     }
 
-    // Inicializar Radio Wi-Fi y ESP-NOW
+    // WiFi y ESP-NOW
     WiFi.mode(WIFI_STA);
-    WiFi.setSleep(false); // Sin ahorro de energía del modem: evita latencia/pérdida en la recepción
+    WiFi.setSleep(false); // con el ahorro de energía la radio puede tardar o perder paquetes
+    // La MAC que se imprime acá es la que hay que poner en macReceptor del transmisor
     Serial.print("[INFO] Dirección MAC Receptora: ");
     Serial.println(WiFi.macAddress());
 
@@ -232,42 +229,43 @@ void setup() {
 #endif
     Serial.println("[ESP-NOW] Receptor a la escucha de paquetes...");
 
-    // Crear Tarea de Control y Actuación en Núcleo 1 (independiente de RF en Core 0)
+    // La tarea de control va en el núcleo 1, separada del WiFi que corre en el 0
     xTaskCreatePinnedToCore(
         tareaControlActuadores,
         "TaskServoControl",
         4096,
         NULL,
-        3, // Alta prioridad de control en Core 1
+        3,    // por encima de loop()
         NULL,
         1
     );
 }
 
-// ==========================================
-// TAREA DE TIEMPO REAL: CONTROL Y SLEW-RATE
-// ==========================================
+// ---------- Tarea de control ----------
+
 void tareaControlActuadores(void* pvParameters) {
     MensajeBrazo paqueteEntrante;
     uint32_t ticksTelemetria = 0;
     uint32_t tiempoEnHomeMs = 0;
 
     for (;;) {
-        // 1. ESPERAR UN PAQUETE: la tarea despierta apenas llega (sin esperar al próximo tick
-        // de 50 Hz). Sin paquetes, el timeout mantiene el ciclo a 50 Hz para failsafe y trayectoria.
-        // ponytail: el slew es por iteración y el Tx manda a 50 Hz; si se sube la tasa del Tx,
-        // escalar VEL_MAX_* por el dt real.
+        // --- 1. Esperar un paquete ---
+        // La tarea se despierta apenas llega uno, sin esperar al próximo ciclo. Si no
+        // llega nada en 20 ms sale igual, así el failsafe y el movimiento siguen a 50 Hz.
+        // Ojo: el limitador mueve una cantidad fija por vuelta y eso da bien porque el
+        // guante manda a 50 Hz. Si se sube la tasa del guante, hay que escalar los
+        // VEL_MAX_* con el tiempo real entre vueltas.
         if (xQueueReceive(colaMensajesBrazo, &paqueteEntrante, pdMS_TO_TICKS(PERIODO_CONTROL_MS)) == pdTRUE) {
             marcaTiempoUltimoPaquete = millis();
 
-            // Si estábamos desconectados o esperando sync, pasar a operación normal
+            // Primer paquete, o volvió el enlace después de un corte
             if (estadoActual != ESTADO_OPERACION_NORMAL) {
                 estadoActual = ESTADO_OPERACION_NORMAL;
                 acoplarServos();
                 Serial.printf("[FSM] Enlace establecido. Paquete #%u recibido.\n", paqueteEntrante.secuencia);
             }
 
-            // Actualizar referencias objetivo
+            // Nuevos objetivos, recortados a los topes
             for (int i = 0; i < TOTAL_DEDOS; i++) {
                 posObjetivoDedos[i] = constrain((float)paqueteEntrante.anguloDedos[i], LIM_DEDOS_MIN, LIM_DEDOS_MAX);
             }
@@ -275,12 +273,12 @@ void tareaControlActuadores(void* pvParameters) {
             posObjetivoMuniecaRot  = constrain((float)paqueteEntrante.muniecaRotacional, LIM_MUNIECA_ROT_MIN, LIM_MUNIECA_ROT_MAX);
         }
 
-        // 2. DETECCIÓN DE TIMEOUT Y SUPERVISIÓN DE FAILSAFE
+        // --- 2. ¿Se cortó el enlace? ---
         if (estadoActual == ESTADO_OPERACION_NORMAL) {
             if (millis() - marcaTiempoUltimoPaquete > TIMEOUT_FAILSAFE_MS) {
                 estadoActual = ESTADO_FAILSAFE_SIN_SENAL;
                 Serial.println("[ALERTA FAILSAFE] Pérdida de señal RF detectada. Comandando pose Home segura...");
-                // Fijar objetivos a la posición Home
+                // Mandamos todo al reposo; el limitador se encarga de que vaya despacio
                 for (int i = 0; i < TOTAL_DEDOS; i++) {
                     posObjetivoDedos[i] = HOME_DEDOS;
                 }
@@ -290,10 +288,12 @@ void tareaControlActuadores(void* pvParameters) {
             }
         }
 
-        // 3. GENERADOR DE TRAYECTORIA: SLEW-RATE LIMITING + DEADBAND
-        // Control cinemático de los 5 dedos (SG90)
+        // --- 3. Mover cada servo un paso hacia su objetivo ---
+        // Si la diferencia es menor que la banda muerta no se toca; si es mayor, se
+        // avanza como mucho VEL_MAX_* por vuelta
         bool todosEnReposo = true;
 
+        // Dedos (SG90)
         for (int i = 0; i < TOTAL_DEDOS; i++) {
             float error = posObjetivoDedos[i] - posActualDedos[i];
 
@@ -307,7 +307,7 @@ void tareaControlActuadores(void* pvParameters) {
             }
         }
 
-        // Control cinemático Muñeca Vertical (MG946R)
+        // Muñeca vertical (MG946R)
         float errorVert = posObjetivoMuniecaVert - posActualMuniecaVert;
         if (fabs(errorVert) > DEADBAND_MUNIECA) {
             todosEnReposo = false;
@@ -318,7 +318,7 @@ void tareaControlActuadores(void* pvParameters) {
             }
         }
 
-        // Control cinemático Muñeca Rotacional (MG946R)
+        // Muñeca rotacional (MG946R)
         float errorRot = posObjetivoMuniecaRot - posActualMuniecaRot;
         if (fabs(errorRot) > DEADBAND_MUNIECA) {
             todosEnReposo = false;
@@ -329,15 +329,15 @@ void tareaControlActuadores(void* pvParameters) {
             }
         }
 
-        // 4. GESTIÓN DE DESACOPLE EN FAILSAFE SOSTENIDO
-        // Si el sistema está en Failsafe y ya alcanzó la posición Home, tras 2 segundos se desacoplan los servos
+        // --- 4. Apagar los servos si el corte sigue ---
+        // En failsafe, una vez que la mano llegó al reposo y pasaron 2 s, se apagan
         if (estadoActual == ESTADO_FAILSAFE_SIN_SENAL && todosEnReposo && servosAcoplados) {
             if (millis() - tiempoEnHomeMs > 2000) {
                 desacoplarServos();
             }
         }
 
-        // 5. TELEMETRÍA SERIAL NO BLOQUEANTE (5 Hz)
+        // --- 5. Telemetría por serie, 1 de cada 10 vueltas (5 Hz) ---
         if (++ticksTelemetria >= 10) {
             ticksTelemetria = 0;
             const char* strEstado = (estadoActual == ESTADO_OPERACION_NORMAL) ? "OK" :
@@ -351,9 +351,9 @@ void tareaControlActuadores(void* pvParameters) {
     }
 }
 
-// ==========================================
-// LOOP (VACÍO - TAREAS ASIGNADAS A FREERTOS)
-// ==========================================
+// ---------- loop ----------
+
+// No hace nada: todo pasa en el callback y en la tarea de control
 void loop() {
     vTaskDelay(pdMS_TO_TICKS(500));
 }

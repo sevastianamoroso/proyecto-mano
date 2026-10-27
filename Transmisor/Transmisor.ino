@@ -1,16 +1,11 @@
-/**
- * @file Transmisor.ino
- * @brief Firmware de Transmisión para Telerrobótica con ESP32, ESP-NOW, MPU6050 y ADC Calibrado
- * @author Revisión de Grado en Ingeniería Electrónica y Sistemas Embebidos
- * 
- * Mejoras clave implementadas:
- *  - Tarea periódica determinista en FreeRTOS (50 Hz exactos con vTaskDelayUntil)
- *  - Calibración bi-punto para potenciómetros almacenada en NVS Flash (Preferences)
- *  - Sobremuestreo (Oversampling) de 16x en ADC para reducción de ruido de cuantización
- *  - Recuperación de bus I2C anti-bloqueo para sensor MPU6050
- *  - Protocolo binario estructurado con Header Mágico, contador de secuencia y Checksum Fletcher-16
- *  - Telemetría serial no bloqueante a tasa reducida (5 Hz)
- */
+// Transmisor.ino - firmware del guante.
+//
+// Lee los 5 potenciómetros de los dedos y el MPU6050 de la muñeca, calcula los
+// ángulos que tiene que copiar la mano y se los manda al receptor por ESP-NOW,
+// 50 veces por segundo. Toda la calibración se hace de este lado: la mano
+// recibe ángulos de servo listos para usar.
+//
+// Para recalibrar los dedos: mandar 'c' por el monitor serie (115200 baudios).
 
 #include <Arduino.h>
 #include <WiFi.h>
@@ -23,10 +18,9 @@
 
 #include "ProtocoloBrazo.h"
 
-// ==========================================
-// CONFIGURACIÓN DE HARDWARE Y PINES
-// ==========================================
-// Pines de ADC1 para lectura de potenciómetros
+// ---------- Pines y parámetros ----------
+
+// Los potes van a pines del ADC1 porque el ADC2 no se puede usar con el WiFi prendido
 const int PIN_PULGAR  = 39; // SENSOR_VN
 const int PIN_INDICE  = 34;
 const int PIN_MEDIO   = 35;
@@ -37,57 +31,55 @@ const int PINES_DEDOS[TOTAL_DEDOS] = {
     PIN_PULGAR, PIN_INDICE, PIN_MEDIO, PIN_ANULAR, PIN_MENIQUE
 };
 
-// Pines de comunicación I2C para MPU6050
+// I2C del MPU6050
 const int PIN_I2C_SDA = 21;
 const int PIN_I2C_SCL = 22;
 
-// Frecuencia del lazo de control (50 Hz = 20 ms)
+// Período del ciclo: 20 ms = 50 Hz
 const TickType_t PERIODO_CONTROL_MS = 20;
 
-// Fusión IMU: filtro complementario (peso del giróscopo, típico 0.96..0.98)
+// Cuánto le creemos al giróscopo en el filtro complementario (lo usual es 0.96 a 0.98)
 const float ALPHA_COMPLEMENTARIO = 0.98f;
-// Ajuste fino de montaje del MPU en el guante (°): ángulo leído con la mano en pose neutra
+// Por si el MPU queda torcido en el guante: lo que marca con la mano derecha, en grados
 const float TRIM_PITCH_DEG = 0.0f;
 const float TRIM_ROLL_DEG  = 0.0f;
-// Rango útil de la mano (°) y rango mecánico de los servos de muñeca (°)
-const float PITCH_MANO_ARRIBA = 45.0f;   // -> SERVO_V_MIN
-const float PITCH_MANO_ABAJO  = -25.0f;  // -> SERVO_V_MAX
+// Hasta dónde movemos la mano (°) y hasta dónde llegan los servos de la muñeca (°)
+const float PITCH_MANO_ARRIBA = 45.0f;   // corresponde a SERVO_V_MIN
+const float PITCH_MANO_ABAJO  = -25.0f;  // corresponde a SERVO_V_MAX
 const float SERVO_V_MIN = 25.0f, SERVO_V_NEUTRO = 57.0f, SERVO_V_MAX = 90.0f;
-const float ROLL_MANO_MAX = 90.0f;       // ±90° de mano -> 0..180° de servo
+const float ROLL_MANO_MAX = 90.0f;       // ±90° de mano son 0 a 180° de servo
 
-// MAC Address de la placa RECEPTORA
-// NOTA: Reemplazar con la MAC física del receptor obtenida por WiFi.macAddress()
+// MAC del ESP32 de la mano. Si se cambia la placa hay que poner la nueva
+// (se ve con WiFi.macAddress() en el receptor).
 uint8_t macReceptor[] = {0x1C, 0xC3, 0xAB, 0xD2, 0x14, 0x9C};
 
-// ==========================================
-// OBJETOS Y VARIABLES GLOBALES
-// ==========================================
+// ---------- Variables globales ----------
+
 Adafruit_MPU6050 mpu;
 Preferences memoriaNVS;
 
-// Mensaje de transmisión y registro de peer
 MensajeBrazo paqueteSalida;
 esp_now_peer_info_t infoReceptor;
 
-// Calibración bi-punto para cada potenciómetro
-uint16_t calMinADC[TOTAL_DEDOS] = {1200, 1200, 1200, 1200, 1200}; // Mano abierta
-uint16_t calMaxADC[TOTAL_DEDOS] = {3200, 3200, 3200, 3200, 3200}; // Mano cerrada
+// Lectura del ADC con la mano abierta (min) y cerrada (max), una por dedo.
+// Estos son valores por defecto; los reales se cargan de la flash al arrancar.
+uint16_t calMinADC[TOTAL_DEDOS] = {1200, 1200, 1200, 1200, 1200};
+uint16_t calMaxADC[TOTAL_DEDOS] = {3200, 3200, 3200, 3200, 3200};
 
-// Estado del filtro complementario (ángulos absolutos respecto a la gravedad, °)
+// Ángulos de la muñeca que va actualizando el filtro (°, respecto de la gravedad)
 float anguloPitch = 0.0f;
 float anguloRoll  = 0.0f;
-// Offsets del giróscopo medidos en reposo (rad/s)
+// Lo que marca el giróscopo quieto (rad/s); se lo restamos a cada lectura
 float gyroBiasX = 0.0f;
 float gyroBiasY = 0.0f;
 uint32_t tiempoAnteriorMicros = 0;
 uint8_t contadorSecuencia = 0;
 
-// Estado de enlace ESP-NOW
+// Lo escribe el callback de envío; sólo se usa para mostrarlo por serie
 volatile bool ultimoEnvioExitoso = false;
-// true mientras corre la calibración de dedos: la tarea no transmite ni imprime
+// En true mientras se calibran los dedos: la tarea no manda nada ni imprime
 volatile bool calibrando = false;
 
-// Prototipos de funciones
 void rutinaRecuperacionI2C(int pinSDA, int pinSCL);
 void cargarCalibracionNVS();
 void guardarCalibracionNVS();
@@ -96,7 +88,8 @@ uint16_t leerADCSobremuestreado(int pin, uint8_t muestras = 16);
 void tareaTransmision(void* pvParameters);
 void calibrarIMU();
 
-// Ángulos absolutos por acelerómetro (°). Independientes de la escala (m/s² o g).
+// Pitch y roll a partir del acelerómetro, en grados. Como son cocientes,
+// da lo mismo si la librería entrega m/s² o g.
 static inline float rollAcc(const sensors_event_t& a) {
     return atan2(a.acceleration.y, a.acceleration.z) * RAD_TO_DEG;
 }
@@ -106,9 +99,10 @@ static inline float pitchAcc(const sensors_event_t& a) {
                       a.acceleration.z * a.acceleration.z)) * RAD_TO_DEG;
 }
 
-// ==========================================
-// CALLBACK DE ESP-NOW (Tx Status)
-// ==========================================
+// ---------- Callback de ESP-NOW ----------
+
+// Avisa si el receptor confirmó el último paquete. La firma cambió en el
+// ESP-IDF 5, por eso hay dos versiones.
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
 void OnDataSent(const wifi_tx_info_t* info, esp_now_send_status_t status) {
     ultimoEnvioExitoso = (status == ESP_NOW_SEND_SUCCESS);
@@ -119,13 +113,11 @@ void OnDataSent(const uint8_t* mac_addr, esp_now_send_status_t status) {
 }
 #endif
 
-// ==========================================
-// RECUPERACIÓN DE BUS I2C
-// ==========================================
-/**
- * @brief Genera 9 ciclos de reloj en SCL para forzar a cualquier esclavo I2C
- * bloqueado en estado de lectura a liberar la línea SDA.
- */
+// ---------- Destrabar el bus I2C ----------
+
+// Si el ESP32 se resetea en medio de una lectura, el MPU puede quedar tirando
+// SDA a masa esperando más clocks, y el bus queda colgado. Mandando 9 pulsos
+// en SCL y un STOP el sensor termina lo que estaba haciendo y suelta la línea.
 void rutinaRecuperacionI2C(int pinSDA, int pinSCL) {
     pinMode(pinSDA, INPUT_PULLUP);
     pinMode(pinSCL, OUTPUT);
@@ -137,7 +129,7 @@ void rutinaRecuperacionI2C(int pinSDA, int pinSCL) {
         delayMicroseconds(5);
     }
 
-    // Generar condición de STOP
+    // STOP: SDA sube mientras SCL está en alto
     pinMode(pinSDA, OUTPUT);
     digitalWrite(pinSDA, LOW);
     delayMicroseconds(5);
@@ -150,11 +142,11 @@ void rutinaRecuperacionI2C(int pinSDA, int pinSCL) {
     pinMode(pinSCL, INPUT_PULLUP);
 }
 
-// ==========================================
-// CALIBRACIÓN BI-PUNTO EN NVS FLASH
-// ==========================================
+// ---------- Calibración de los dedos (guardada en flash) ----------
+
+// Se guarda en la NVS para no tener que calibrar cada vez que se prende el guante
 void cargarCalibracionNVS() {
-    memoriaNVS.begin("calib_brazo", true); // Modo sólo lectura
+    memoriaNVS.begin("calib_brazo", true); // true = sólo lectura
     for (int i = 0; i < TOTAL_DEDOS; i++) {
         String kMin = "min_" + String(i);
         String kMax = "max_" + String(i);
@@ -166,7 +158,7 @@ void cargarCalibracionNVS() {
 }
 
 void guardarCalibracionNVS() {
-    memoriaNVS.begin("calib_brazo", false); // Modo lectura/escritura
+    memoriaNVS.begin("calib_brazo", false);
     for (int i = 0; i < TOTAL_DEDOS; i++) {
         String kMin = "min_" + String(i);
         String kMax = "max_" + String(i);
@@ -177,16 +169,19 @@ void guardarCalibracionNVS() {
     Serial.println("[NVS] Nuevos valores de calibración almacenados.");
 }
 
+// Se pide abrir la mano, se lee; se pide cerrarla, se lee, y se guarda.
 void ejecutarCalibracionInteractiva() {
-    // La tarea de transmisión (prioridad 2, mismo núcleo) ya terminó su ciclo cuando loop() llega acá:
-    // desde su próximo ciclo deja de leer dedos, transmitir e imprimir.
+    // Cuando loop() llega acá, la tarea de transmisión (que tiene más prioridad y
+    // corre en el mismo núcleo) ya terminó su ciclo. Desde el siguiente deja de
+    // leer los dedos y de transmitir, así que la mano se va sola a la posición
+    // de reposo por el failsafe del receptor.
     calibrando = true;
     Serial.println("\n=== INICIANDO RUTINA DE CALIBRACIÓN BI-PUNTO ===");
     Serial.println("Transmisión y telemetría PAUSADAS (la mano robot irá a Home por failsafe).");
     Serial.println("Paso 1: Abra completamente la mano.");
     Serial.println("Enviando comando... Ingrese cualquier caracter y presione ENTER para registrar MIN.");
     while (Serial.available() == 0) { delay(50); }
-    while (Serial.available() > 0) { Serial.read(); }
+    while (Serial.available() > 0) { Serial.read(); } // vacía lo que haya quedado (el ENTER)
 
     for (int i = 0; i < TOTAL_DEDOS; i++) {
         calMinADC[i] = leerADCSobremuestreado(PINES_DEDOS[i], 32);
@@ -208,9 +203,9 @@ void ejecutarCalibracionInteractiva() {
     calibrando = false;
 }
 
-// ==========================================
-// ADQUISICIÓN ANALÓGICA CON SOBREMUESTREO
-// ==========================================
+// ---------- Lectura del ADC ----------
+
+// El ADC del ESP32 es bastante ruidoso, así que promediamos varias lecturas seguidas
 uint16_t leerADCSobremuestreado(int pin, uint8_t muestras) {
     uint32_t acumulador = 0;
     for (uint8_t i = 0; i < muestras; i++) {
@@ -220,14 +215,11 @@ uint16_t leerADCSobremuestreado(int pin, uint8_t muestras) {
     return (uint16_t)(acumulador / muestras);
 }
 
-// ==========================================
-// CALIBRACIÓN DE OFFSETS DEL MPU6050 (REPOSO)
-// ==========================================
-/**
- * @brief Promedia el giróscopo en reposo para obtener su offset e inicializa
- * el filtro con el ángulo absoluto del acelerómetro (sin transitorio desde 0°).
- * La mano debe permanecer QUIETA durante ~1.5 s.
- */
+// ---------- Calibración del MPU6050 ----------
+
+// Con la mano quieta (~1,5 s) promedia el giróscopo para sacar su offset. De paso
+// arranca el filtro con el ángulo real del acelerómetro, así no sale desde 0°
+// y tarda en llegar.
 void calibrarIMU() {
     Serial.println("[MPU6050] Calibrando offsets: mantener la mano QUIETA...");
     const int N = 500;
@@ -249,28 +241,27 @@ void calibrarIMU() {
                   gyroBiasX, gyroBiasY, anguloPitch, anguloRoll);
 }
 
-// ==========================================
-// SETUP
-// ==========================================
+// ---------- setup ----------
+
 void setup() {
     Serial.begin(115200);
     delay(500);
     Serial.println("\n[SISTEMA] Iniciando Transmisor de Telerrobótica...");
 
-    // 1. Configuración de ADC
+    // ADC
     for (int i = 0; i < TOTAL_DEDOS; i++) {
         pinMode(PINES_DEDOS[i], INPUT);
     }
-    analogReadResolution(12); // Rango 0..4095
-    analogSetAttenuation(ADC_11db); // Rango de entrada ~0 a 3.3V
+    analogReadResolution(12);       // 0 a 4095
+    analogSetAttenuation(ADC_11db); // para poder leer hasta ~3,3 V
 
     cargarCalibracionNVS();
 
-    // 2. Inicialización y recuperación de bus I2C
+    // I2C: primero lo destrabamos por las dudas y después lo arrancamos a 400 kHz
     rutinaRecuperacionI2C(PIN_I2C_SDA, PIN_I2C_SCL);
-    Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL, 400000); // Fast-mode 400 kHz
+    Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL, 400000);
 
-    // 3. Inicialización de MPU6050 con reintentos
+    // MPU6050: a veces no contesta al primer intento, así que probamos hasta 5 veces
     bool mpuOk = false;
     for (int intento = 1; intento <= 5; intento++) {
         Serial.printf("[MPU6050] Intento de conexión %d/5...\n", intento);
@@ -286,14 +277,15 @@ void setup() {
     } else {
         mpu.setAccelerometerRange(MPU6050_RANGE_2_G);
         mpu.setGyroRange(MPU6050_RANGE_500_DEG);
-        mpu.setFilterBandwidth(MPU6050_BAND_44_HZ); // retardo ~4.9 ms (vs 8.5 ms a 21 Hz)
+        // 44 Hz agrega ~4,9 ms de retardo; antes usábamos 21 Hz, que agrega ~8,5 ms
+        mpu.setFilterBandwidth(MPU6050_BAND_44_HZ);
         Serial.println("[MPU6050] Configurado exitosamente (±2G, 500°/s, DLPF 44Hz).");
         calibrarIMU();
     }
 
-    // 4. Inicialización de Radio Wi-Fi y ESP-NOW
+    // WiFi y ESP-NOW
     WiFi.mode(WIFI_STA);
-    WiFi.setSleep(false); // Anula el ahorro de energía para eliminar latencia RF
+    WiFi.setSleep(false); // con el ahorro de energía activado la radio agrega retardo
 
     if (esp_now_init() != ESP_OK) {
         Serial.println("[ERROR CRÍTICO] Error al inicializar ESP-NOW.");
@@ -306,10 +298,10 @@ void setup() {
     esp_now_register_send_cb((esp_now_send_cb_t)OnDataSent);
 #endif
 
-    // Configuración del peer receptor
+    // Registramos la mano como destino
     memcpy(infoReceptor.peer_addr, macReceptor, 6);
-    infoReceptor.channel = 0;     // Canal actual de Wi-Fi
-    infoReceptor.encrypt = false; // Sin cifrado para máxima velocidad y mínima latencia
+    infoReceptor.channel = 0;     // 0 = el canal en el que ya está el WiFi
+    infoReceptor.encrypt = false; // sin cifrado: no hace falta y es más rápido
 
     if (esp_now_add_peer(&infoReceptor) != ESP_OK) {
         Serial.println("[ALERTA] Falló el registro del receptor como peer.");
@@ -317,113 +309,104 @@ void setup() {
         Serial.println("[ESP-NOW] Receptor emparejado correctamente.");
     }
 
-    // Inicializar temporización del filtro complementario
+    // Punto de partida para el dt del filtro
     tiempoAnteriorMicros = micros();
 
-    // 5. Creación de Tarea de Transmisión determinista en Core 1
+    // La tarea va en el núcleo 1; el WiFi y ESP-NOW corren en el 0
     xTaskCreatePinnedToCore(
         tareaTransmision,
         "TaskTxBrazo",
         4096,
         NULL,
-        2, // Prioridad superior a tareas idle
+        2,    // más prioridad que loop(), que corre con 1
         NULL,
-        1  // Asignada a Core 1 (Core 0 gestiona la pila WiFi/ESP-NOW)
+        1
     );
 
     Serial.println("[SISTEMA] Tarea de transmisión iniciada a 50 Hz.");
     Serial.println("[SISTEMA] Envíe 'c' por el monitor serial para calibrar potenciómetros.\n");
 }
 
-// ==========================================
-// TAREA PERIÓDICA DE CONTROL Y TRANSMISIÓN
-// ==========================================
+// ---------- Tarea principal: leer, calcular y mandar ----------
+
 void tareaTransmision(void* pvParameters) {
     TickType_t xLastWakeTime = xTaskGetTickCount();
     uint32_t ticksTelemetria = 0;
 
     for (;;) {
-        // Ejecución determinista a 50 Hz (20 ms)
+        // vTaskDelayUntil (y no vTaskDelay) para que el período sea siempre 20 ms,
+        // tarde lo que tarde el resto del ciclo
         vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(PERIODO_CONTROL_MS));
 
-        // -------------------------------------------------------------
-        // 1. ADQUISICIÓN IMU (MPU6050) Y FUSIÓN COMPLEMENTARIA
-        // -------------------------------------------------------------
+        // --- 1. Muñeca: MPU6050 + filtro complementario ---
         sensors_event_t a, g, temp;
         if (mpu.getEvent(&a, &g, &temp)) {
             uint32_t tiempoActualMicros = micros();
             float dt = (float)(tiempoActualMicros - tiempoAnteriorMicros) / 1000000.0f;
             tiempoAnteriorMicros = tiempoActualMicros;
 
-            // Protección ante desbordamiento o dt anómalo
+            // Si el dt sale raro (primer ciclo, micros() que dio la vuelta) usamos el nominal
             if (dt <= 0.0f || dt > 0.1f) dt = 0.02f;
 
-            // Velocidades angulares sin offset (°/s). Signos coherentes con pitchAcc/rollAcc
-            // (regla de la mano derecha: +gyro.y aumenta pitch, +gyro.x aumenta roll).
+            // Velocidad de giro sin el offset, en °/s. Los signos están elegidos para
+            // que coincidan con pitchAcc/rollAcc: +gyro.y sube el pitch, +gyro.x sube el roll.
             float gyroRatePitch = (g.gyro.y - gyroBiasY) * RAD_TO_DEG;
             float gyroRateRoll  = (g.gyro.x - gyroBiasX) * RAD_TO_DEG;
 
-            // Filtro complementario: el giróscopo aporta respuesta rápida y el
-            // acelerómetro ancla el ángulo a la gravedad (sin drift acumulado).
+            // El giróscopo responde rápido pero deriva; el acelerómetro no deriva pero
+            // es ruidoso. Mezclando los dos nos quedamos con lo bueno de cada uno.
             anguloPitch = ALPHA_COMPLEMENTARIO * (anguloPitch + gyroRatePitch * dt)
                         + (1.0f - ALPHA_COMPLEMENTARIO) * pitchAcc(a);
 
-            // Cerca de ±90° de pitch el roll del acelerómetro es indeterminado:
-            // se retiene el último valor válido en vez de integrar el gyro a ciegas.
+            // Cerca de ±90° de pitch el roll del acelerómetro es indeterminado
+            // (gimbal lock), así que dejamos el último valor bueno
             if (fabs(anguloPitch) < 80.0f) {
                 anguloRoll = ALPHA_COMPLEMENTARIO * (anguloRoll + gyroRateRoll * dt)
                            + (1.0f - ALPHA_COMPLEMENTARIO) * rollAcc(a);
             }
 
-            // Mapeo absoluto y unívoco ángulo de mano -> ángulo de servo, saturado
-            // Pitch: tramos lineales con 0° de mano = SERVO_V_NEUTRO
+            // Ángulo de la mano -> ángulo del servo.
+            // Pitch: dos rectas que se juntan en SERVO_V_NEUTRO (mano derecha = 0°),
+            // porque para arriba y para abajo el rango no es el mismo
             float p = constrain(anguloPitch - TRIM_PITCH_DEG, PITCH_MANO_ABAJO, PITCH_MANO_ARRIBA);
             float servoV = (p >= 0.0f)
                 ? SERVO_V_NEUTRO - (p / PITCH_MANO_ARRIBA) * (SERVO_V_NEUTRO - SERVO_V_MIN)
                 : SERVO_V_NEUTRO + (p / PITCH_MANO_ABAJO)  * (SERVO_V_MAX - SERVO_V_NEUTRO);
             paqueteSalida.muniecaVertical = (int16_t)lroundf(constrain(servoV, SERVO_V_MIN, SERVO_V_MAX));
 
-            // Roll: -90..+90° de mano -> 0..180° de servo
+            // Roll: corrimiento directo, -90..+90° de mano a 0..180° de servo
             float r = constrain(anguloRoll - TRIM_ROLL_DEG, -ROLL_MANO_MAX, ROLL_MANO_MAX);
             paqueteSalida.muniecaRotacional = (int16_t)lroundf(constrain(r + 90.0f, 0.0f, 180.0f));
         }
 
-        // Durante la calibración no se lee el ADC (lo usa la rutina de calibración),
-        // no se transmite ni se imprime. El IMU sigue arriba para no perder el estado del filtro.
+        // Mientras se calibra, el ADC lo usa la rutina de calibración, así que acá
+        // no se lee ni se manda nada. El MPU sí se sigue leyendo para que el filtro
+        // no pierda el ángulo.
         if (calibrando) continue;
 
-        // -------------------------------------------------------------
-        // 2. ADQUISICIÓN Y MAPEADO CALIBRADO DE DEDOS (POTENCIÓMETROS)
-        // -------------------------------------------------------------
+        // --- 2. Dedos: ADC -> ángulo de servo (25 a 90°) ---
         for (int i = 0; i < TOTAL_DEDOS; i++) {
             uint16_t adcRaw = leerADCSobremuestreado(PINES_DEDOS[i], 16);
 
-            // Mapeo seguro con calibración bi-punto
             int16_t anguloDedo;
             if (calMaxADC[i] > calMinADC[i]) {
                 anguloDedo = map(adcRaw, calMinADC[i], calMaxADC[i], 25, 90);
             } else {
-                // Caso inverso (potenciómetro montado en polaridad invertida)
+                // Pote montado al revés: el valor baja al cerrar la mano
                 anguloDedo = map(adcRaw, calMaxADC[i], calMinADC[i], 90, 25);
             }
             paqueteSalida.anguloDedos[i] = (uint16_t)constrain(anguloDedo, 25, 90);
         }
 
-        // -------------------------------------------------------------
-        // 3. EMPAQUETADO, SECUENCIA Y CHECKSUM
-        // -------------------------------------------------------------
+        // --- 3. Armado del paquete ---
         paqueteSalida.magicHeader = PROTOCOLO_HEADER_MAGIC;
         paqueteSalida.secuencia   = contadorSecuencia++;
         paqueteSalida.checksum    = calcularChecksumBrazo(paqueteSalida);
 
-        // -------------------------------------------------------------
-        // 4. TRANSMISIÓN POR ESP-NOW
-        // -------------------------------------------------------------
+        // --- 4. Envío ---
         esp_now_send(macReceptor, reinterpret_cast<uint8_t*>(&paqueteSalida), sizeof(paqueteSalida));
 
-        // -------------------------------------------------------------
-        // 5. TELEMETRÍA SERIAL NO BLOQUEANTE (5 Hz = cada 10 ciclos)
-        // -------------------------------------------------------------
+        // --- 5. Telemetría por serie, 1 de cada 10 ciclos (5 Hz) para no frenar la tarea ---
         if (++ticksTelemetria >= 10) {
             ticksTelemetria = 0;
             Serial.printf("[TX #%u] Dedos:[%u, %u, %u, %u, %u] | Mñc:[V:%d, R:%d] | RF:%s\n",
@@ -440,11 +423,10 @@ void tareaTransmision(void* pvParameters) {
     }
 }
 
-// ==========================================
-// LOOP (GESTIÓN DE CALIBRACIÓN SERIAL)
-// ==========================================
+// ---------- loop ----------
+
+// Todo el trabajo lo hace la tarea; loop() sólo espera la 'c' para calibrar
 void loop() {
-    // El núcleo 1 delega el control en FreeRTOS; loop() se usa para comandos interactivos
     if (Serial.available() > 0) {
         char cmd = Serial.read();
         if (cmd == 'c' || cmd == 'C') {

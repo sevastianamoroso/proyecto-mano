@@ -1,12 +1,19 @@
+// ProtocoloBrazo.h - el formato del paquete que viaja del guante a la mano.
+//
+// Hay una copia en cada carpeta (Transmisor, Receptor y Receptor_Latencia) porque
+// el IDE de Arduino sólo compila lo que está en la carpeta del programa.
+// Si se cambia algo, hay que cambiarlo en todas.
+
 #ifndef PROTOCOLO_BRAZO_H
 #define PROTOCOLO_BRAZO_H
 
 #include <Arduino.h>
 
-// Cabecera mágica para verificar la validez y alineación del paquete
+// Valor fijo al principio de cada paquete. Si no está, no es un paquete nuestro
+// (o llegó corrido) y se descarta.
 #define PROTOCOLO_HEADER_MAGIC 0xAA55
 
-// Índices para el arreglo de dedos
+// Posición de cada dedo en el arreglo anguloDedos
 enum DedoIndex {
     DEDO_PULGAR  = 0,
     DEDO_INDICE  = 1,
@@ -16,28 +23,27 @@ enum DedoIndex {
     TOTAL_DEDOS  = 5
 };
 
-// Estructura de paquete con alineación de 1 byte sin padding
+// pack(1) para que el compilador no meta bytes de relleno entre campos: así el
+// paquete ocupa siempre 19 bytes y se puede mandar tal cual está en memoria.
 #pragma pack(push, 1)
 struct MensajeBrazo {
-    uint16_t magicHeader;        // Debe coincidir con PROTOCOLO_HEADER_MAGIC (0xAA55)
-    uint8_t  secuencia;          // Contador monotónico incremental (0..255)
-    uint16_t anguloDedos[5];     // Ángulos objetivos para cada dedo (grados 25..90)
-    int16_t  muniecaVertical;    // Ángulo vertical (Pitch) en grados (25..90)
-    int16_t  muniecaRotacional;  // Ángulo rotacional (Roll) en grados (0..180)
-    uint16_t checksum;           // Checksum para verificación de integridad de datos
+    uint16_t magicHeader;        // siempre PROTOCOLO_HEADER_MAGIC (0xAA55)
+    uint8_t  secuencia;          // contador que sube de a 1 en cada envío (0..255 y vuelve a 0)
+    uint16_t anguloDedos[5];     // ángulo de servo de cada dedo, 25..90°
+    int16_t  muniecaVertical;    // servo de la muñeca vertical (pitch), 25..90°
+    int16_t  muniecaRotacional;  // servo de la muñeca rotacional (roll), 0..180°
+    uint16_t checksum;           // calculado con calcularChecksumBrazo()
 };
 #pragma pack(pop)
 
-/**
- * @brief Calcula el checksum (Fletcher-16 simplificado) de la estructura.
- * Se excluye el campo de checksum del cálculo.
- */
+// Checksum tipo Fletcher-16 sobre todos los bytes del paquete menos el propio checksum.
+// sum2 acumula a sum1, así que también detecta bytes que llegaron cambiados de lugar.
 inline uint16_t calcularChecksumBrazo(const MensajeBrazo& msg) {
     const uint8_t* buffer = reinterpret_cast<const uint8_t*>(&msg);
     size_t longitud = sizeof(MensajeBrazo) - sizeof(msg.checksum);
     uint16_t sum1 = 0;
     uint16_t sum2 = 0;
-    
+
     for (size_t i = 0; i < longitud; ++i) {
         sum1 = (sum1 + buffer[i]) % 255;
         sum2 = (sum2 + sum1) % 255;
@@ -45,9 +51,7 @@ inline uint16_t calcularChecksumBrazo(const MensajeBrazo& msg) {
     return (sum2 << 8) | sum1;
 }
 
-/**
- * @brief Valida la cabecera y el checksum del paquete recibido.
- */
+// true si el paquete tiene la cabecera correcta y el checksum da
 inline bool validarPaqueteBrazo(const MensajeBrazo& msg) {
     if (msg.magicHeader != PROTOCOLO_HEADER_MAGIC) {
         return false;

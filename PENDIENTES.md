@@ -32,9 +32,6 @@ Actualizado: 2026-10-26. Archivo pensado para retomar desde otra PC u otra sesi�
 
 ## Opcional / después de la defensa
 
-- [ ] Comentarios del código más naturales en `Transmisor.ino`, `Receptor.ino` y `Receptor_Latencia.ino`
-  (sacar encabezados tipo "Revisión de Grado..." y listas de "Mejoras clave"). Sólo comentarios; si el informe
-  cita fragmentos, actualizarlos.
 - [ ] Latencia: el campo `final_us` (~310 ms) es mayor que lo que da el limitador según el código (~160 ms). No
   afecta a la latencia informada. El script `docs/pruebas/matlab/latencia_punta_a_punta.m` nunca se probó.
 - [ ] `REGISTRO_PRUEBAS.md`: P03 sigue en ⚠️; decidir si pasa a ✅.

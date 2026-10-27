@@ -241,6 +241,7 @@ anguloPitch = ALPHA_COMPLEMENTARIO * (anguloPitch + gyroRatePitch * dt)
             + (1.0f - ALPHA_COMPLEMENTARIO) * pitchAcc(a);
 
 // Cerca de ±90° de pitch el roll del acelerómetro es indeterminado
+// (gimbal lock), así que dejamos el último valor bueno
 if (fabs(anguloPitch) < 80.0f) {
     anguloRoll = ALPHA_COMPLEMENTARIO * (anguloRoll + gyroRateRoll * dt)
                + (1.0f - ALPHA_COMPLEMENTARIO) * rollAcc(a);
