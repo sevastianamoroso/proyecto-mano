@@ -52,7 +52,7 @@ guante; la mano no se toca.
 |---|---|
 | `Transmisor/Transmisor.ino` | Firmware del guante |
 | `Receptor/Receptor.ino` | Firmware de la mano |
-| `Transmisor/ProtocoloBrazo.h` y `Receptor/ProtocoloBrazo.h` | Definición del paquete y del checksum. **Son dos copias idénticas** (el IDE de Arduino sólo compila archivos de la carpeta del sketch) y deben mantenerse iguales |
+| `Transmisor/ProtocoloBrazo.h`, `Receptor/ProtocoloBrazo.h` y `Receptor_Latencia/ProtocoloBrazo.h` | Definición del paquete y del checksum. **Son tres copias idénticas** (el IDE de Arduino sólo compila archivos de la carpeta del sketch) y deben mantenerse iguales |
 | `*/Conexionado_*.drawio` | Diagramas de conexionado eléctrico |
 
 ### 2.2. Librerías

@@ -70,7 +70,7 @@ El dato cambia de núcleo dos veces: en el transmisor del 1 al 0, cuando la pila
 \subsection{Protocolo de comunicación}
 \label{sec:protocolo}
 
-Ambos nodos comparten el archivo \texttt{ProtocoloBrazo.h}, que define la estructura del paquete y las funciones de verificación. Como el entorno de Arduino sólo compila archivos que están dentro de la carpeta de cada programa, existen dos copias idénticas del archivo, una por nodo, que deben mantenerse iguales.
+Ambos nodos comparten el archivo \texttt{ProtocoloBrazo.h}, que define la estructura del paquete y las funciones de verificación. Como el entorno de Arduino sólo compila archivos que están dentro de la carpeta de cada programa, hay una copia idéntica del archivo en la carpeta de cada programa (la del transmisor, la del receptor y la del receptor modificado para medir la latencia), y deben mantenerse iguales.
 
 \begin{lstlisting}[caption={Estructura del paquete (\texttt{ProtocoloBrazo.h}).}, label={cod:paquete}]
 #pragma pack(push, 1)
