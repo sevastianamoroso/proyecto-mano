@@ -35,8 +35,9 @@ montaje con figura, criterios, tablas por corrida y por tramos, limitaciones). L
 - 2026-10-28: la diapositiva "Orientación a partir de la gravedad" usa `Acelerometro_Esquema.png` (la fig. 9
   recortada, sin las fórmulas con `atan` que no coinciden con el firmware). `Deriva_Ruido_MPU6050.jpeg` cita
   la fuente (Luis Llamas, luisllamas.es). Se puede exponer 30–40 min: no hace falta recortar.
-- [ ] **Guion para practicar:** `informe/presentacion/GUION_PRESENTACION.md`. Completar la tabla de quién
-  presenta cada bloque y ensayar en voz alta (dura unos 22–25 min sin demo; se puede ampliar).
+- [ ] **Guion para practicar:** `informe/presentacion/GUION_PRESENTACION.md`. Reparto definido el 2026-10-28
+  (ideas intercaladas, ≈ 14 min cada uno; orador en cada título). Falta ensayar en voz alta y repartir entre
+  los dos el texto de la introducción (diapositivas 1–4). Dura ≈ 31 min sin demo.
 
 ### Otros
 
