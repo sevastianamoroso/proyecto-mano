@@ -522,6 +522,12 @@ struct MensajeBrazo {
   {\scriptsize I\textsuperscript{2}C a \SI{400}{\kilo\hertz}, 14 bytes por lectura, DLPF en \SI{44}{\hertz} (sensibilidades: hoja de datos de InvenSense)}
 \end{frame}
 
+\begin{frame}{IMU: orientación a partir de la gravedad}
+  \centering
+  \includegraphics[height=0.72\textheight]{Acelerometro_Calculo.png}\\[0.5ex]
+  {\small En reposo, la proyección de $\vec g$ sobre los tres ejes del acelerómetro da la inclinación del sensor}
+\end{frame}
+
 \begin{frame}{IMU: qué aporta cada sensor y por qué deriva}
   \begin{columns}[T]
     \column{0.5\textwidth}
@@ -554,6 +560,12 @@ struct MensajeBrazo {
       \item Al encender, 500 lecturas en reposo dan el \textit{bias} que luego se resta
     \end{itemize}
   \end{columns}
+\end{frame}
+
+\begin{frame}{IMU: deriva del giróscopo y ruido del acelerómetro}
+  \centering
+  \includegraphics[height=0.75\textheight]{Deriva_Ruido_MPU6050.jpeg}\\[0.5ex]
+  {\small Giróscopo integrado: \alert{deriva}. Acelerómetro: \alert{ruido} al mover la mano. Fusionados: ángulo estable y rápido}
 \end{frame}
 
 \begin{frame}{Muñeca: filtro complementario}

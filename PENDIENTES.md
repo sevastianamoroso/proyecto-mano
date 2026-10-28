@@ -1,6 +1,6 @@
 # Pendientes (traspaso entre sesiones)
 
-Actualizado: 2026-10-26. Archivo pensado para retomar desde otra PC u otra sesión de Claude. Borrar cada
+Actualizado: 2026-10-27. Archivo pensado para retomar desde otra PC u otra sesión de Claude. Borrar cada
 ítem cuando se cierre y borrar el archivo cuando quede vacío.
 
 ## Contexto
@@ -19,6 +19,38 @@ Actualizado: 2026-10-26. Archivo pensado para retomar desde otra PC u otra sesi�
     osciloscopio, no confiable a 1 V/div.
 
 ## Antes de la defensa
+
+### Corrección del revisor (Edu, 2026-10-27)
+
+Análisis completo en `docs/CORRECCIONES_REVISOR.md`. **Todavía no se cambió nada del informe**: el usuario
+quiere analizarlo antes.
+
+- [ ] **Filtro complementario** (`informe/capitulos/04_transmisor.tex`, párrafo después de `eq:complementario`).
+  Con la ecuación como está escrita no hay pasa-altos: las dos entradas pasan por el mismo pasa-bajos
+  (ganancias en continua 1 y 49). El pasa-altos aparece sólo si la entrada del giróscopo es el ángulo
+  integrado. Reescribir el párrafo con las dos transferencias.
+- [ ] **El mismo error en la presentación:** diapositiva "Muñeca: filtro complementario", con el `underbrace`
+  "giróscopo: pasa-altos". El guion ya lo explica bien, pero la diapositiva no.
+- [ ] Verificar que la "ecuación (7) de la pág. 14" sea `eq:complementario` y revisar `C_filtro_kalman.tex`.
+- [ ] **Latencia** (`informe/capitulos/07_analisis_temporal.tex`): reorganizar en qué se mide, montaje (con
+  figura) y resultados (una tabla por corrida y reparto en tramos con `llegada_us`). No hace falta volver a
+  medir. Detalle de los 6 puntos en `docs/CORRECCIONES_REVISOR.md`.
+- [ ] Recompilar el informe y reenviar el PDF cuando estén las correcciones.
+
+### Presentación (cambios del 2026-10-27)
+
+- Se agregaron dos diapositivas en la sección del MPU6050: "Orientación a partir de la gravedad" (figura
+  `Acelerometro_Calculo.png`, la fig. 9 del informe) y "Deriva del giróscopo y ruido del acelerómetro"
+  (`informe/Imagenes/Deriva_Ruido_MPU6050.jpeg`).
+- [ ] **Citar la fuente** de `Deriva_Ruido_MPU6050.jpeg`: no es una medición propia y no se sabe de dónde
+  salió. Además, en el eje Y los valores negativos no tienen el signo menos (viene así de origen).
+- [ ] La fig. 9 usa fórmulas con `atan` y nombres θx/θy/θz; la diapositiva siguiente usa `atan2` (las del
+  firmware). Decidir si se aclara en la diapositiva o sólo de palabra (el guion lo menciona).
+- [ ] **Guion para practicar:** `informe/presentacion/GUION_PRESENTACION.md`, con qué decir y qué señalar en
+  cada diapositiva. Completar la tabla de quién presenta cada bloque. Dura unos 22–25 min sin demo y la
+  defensa es de 15–20 min: **aplicar los recortes** de la sección "Qué recortar" y cronometrar.
+
+### Otros
 
 - [ ] Flashear `Receptor/Receptor.ino` (anular en GPIO 23) y confirmar con la mano completa. El usuario lo hace
   a último momento; el código y los documentos ya dicen GPIO 23.
