@@ -225,12 +225,8 @@
   \begin{tikzpicture}
     \node[draw=acento, very thick, rounded corners, minimum width=11cm, minimum height=5.2cm,
           fill=fondoclaro, align=center, font=\large] {%
-      \textbf{Demo en vivo}\\[2ex]
-      \normalsize Video de respaldo:\\
-      \pendiente{grabar el video y enlazarlo aquí}};
+      \textbf{Demo en vivo}};
   \end{tikzpicture}
-  % Para enlazar el video (se abre con el reproductor del sistema):
-  % \href{run:video/demo.mp4}{\includegraphics[width=11cm]{captura_demo.png}}
 \end{frame}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -524,7 +520,7 @@ struct MensajeBrazo {
 
 \begin{frame}{IMU: orientación a partir de la gravedad}
   \centering
-  \includegraphics[height=0.72\textheight]{Acelerometro_Calculo.png}\\[0.5ex]
+  \includegraphics[width=\textwidth]{Acelerometro_Esquema.png}\\[2ex]
   {\small En reposo, la proyección de $\vec g$ sobre los tres ejes del acelerómetro da la inclinación del sensor}
 \end{frame}
 
@@ -564,22 +560,23 @@ struct MensajeBrazo {
 
 \begin{frame}{IMU: deriva del giróscopo y ruido del acelerómetro}
   \centering
-  \includegraphics[height=0.75\textheight]{Deriva_Ruido_MPU6050.jpeg}\\[0.5ex]
-  {\small Giróscopo integrado: \alert{deriva}. Acelerómetro: \alert{ruido} al mover la mano. Fusionados: ángulo estable y rápido}
+  \includegraphics[height=0.64\textheight]{Deriva_Ruido_MPU6050.jpeg}\\[0.5ex]
+  {\small Giróscopo integrado: \alert{deriva}. Acelerómetro: \alert{ruido} al mover la mano. Fusionados: ángulo estable y rápido}\\
+  {\tiny Fuente: L.~Llamas, ``Medir la inclinación con IMU, Arduino y filtro complementario'', \url{https://www.luisllamas.es/medir-la-inclinacion-imu-arduino-filtro-complementario/}}
 \end{frame}
 
 \begin{frame}{Muñeca: filtro complementario}
   \[
-    \theta_k = \alpha\,\underbrace{\left(\theta_{k-1} + \omega_k\,\Delta t\right)}_{\mathclap{\text{giróscopo: pasa-altos}}}
-             + (1-\alpha)\,\underbrace{\theta_{acc,k}}_{\mathclap{\text{acelerómetro: pasa-bajos}}},
-    \qquad \alpha = 0{,}98
-  \]
-  \[
-    \tau = \frac{\alpha\,\Delta t}{1-\alpha} = \frac{0{,}98 \times \SI{0.02}{\second}}{0{,}02} \approx \SI{1}{\second}
+    \theta_k = \alpha\,\underbrace{\left(\theta_{k-1} + \omega_k\,\Delta t\right)}_{\mathclap{\text{integra el giróscopo}}}
+             + (1-\alpha)\,\underbrace{\theta_{acc,k}}_{\mathclap{\text{corrige con el acelerómetro}}},
+    \qquad \alpha = 0{,}98,
+    \qquad \tau = \frac{\alpha\,\Delta t}{1-\alpha} \approx \SI{1}{\second}
   \]
   \begin{itemize}
-    \item Movimientos más rápidos que $\tau$: manda el giróscopo (sin retardo)
-    \item Tiempos mayores: el acelerómetro corrige la deriva
+    \item Con entradas $\theta_{acc}$ y $\omega\,\Delta t$: los dos canales son pasa-bajos (ganancias 1 y 49)
+    \item Respecto del ángulo del giróscopo solo, $\theta_g = \sum \omega\,\Delta t$: \alert{pasa-altos}, y $H_g + H_{acc} = 1$ $\rightarrow$ \emph{complementario}
+    \item Más rápido que $\tau$ manda el giróscopo; más lento, el acelerómetro corrige la deriva
+    \item \textit{Bias} residual $b$ $\rightarrow$ error fijo $\tau\,b$, no deriva sin límite
     \item Al encender: 500 lecturas en reposo $\rightarrow$ \textit{bias} del giróscopo y ángulo inicial
     \item Si $|\theta| \geq \SI{80}{\degree}$ el \textit{roll} se retiene (singularidad, \textit{gimbal lock})
     \item DLPF interno del MPU6050 en \SI{44}{\hertz} ($\approx\SI{5}{\milli\second}$ de retardo)

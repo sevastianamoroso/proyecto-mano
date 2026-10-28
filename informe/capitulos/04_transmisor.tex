@@ -227,11 +227,32 @@ donde $\phi$ es el \textit{roll} y $\theta$ el \textit{pitch}. Al ser cocientes,
 \theta_k = \alpha\left(\theta_{k-1} + \omega_k\,\Delta t\right) + (1-\alpha)\,\theta_{acc,k}, \qquad \alpha = 0{,}98,
 \label{eq:complementario}
 \end{equation}
-donde $\omega_k$ es la velocidad angular medida, sin \textit{bias}, y $\Delta t$ el tiempo transcurrido desde la lectura anterior, medido con \texttt{micros()} (si resultara nulo o mayor a \SI{100}{\milli\second}, se usa \SI{20}{\milli\second}). El término del giróscopo actúa como un filtro pasa-altos y el del acelerómetro como un pasa-bajos; sus transferencias suman uno en todas las frecuencias, de ahí el nombre de \emph{complementario}. La constante de tiempo que separa ambas regiones es
+donde $\omega_k$ es la velocidad angular medida, sin \textit{bias}, y $\Delta t$ el tiempo transcurrido desde la lectura anterior, medido con \texttt{micros()} (si resultara nulo o mayor a \SI{100}{\milli\second}, se usa \SI{20}{\milli\second}).
+
+\paragraph{Por qué se llama complementario.} La ecuación~\eqref{eq:complementario} admite dos lecturas. Tomada tal como está escrita, con las entradas $\theta_{acc}$ y $\omega_k\,\Delta t$ (el giro medido en cada ciclo), su transformada Z es
+\begin{equation}
+\Theta(z) = \underbrace{\frac{1-\alpha}{1-\alpha z^{-1}}}_{H_{acc}(z)}\,\Theta_{acc}(z) + \frac{\alpha}{1-\alpha z^{-1}}\,\Delta t\,\Omega(z).
+\label{eq:complementario_directa}
+\end{equation}
+Los dos canales son pasa-bajos con el mismo polo en $z = \alpha$, con ganancia en continua 1 para el acelerómetro y $\alpha/(1-\alpha) = 49$ para $\omega\,\Delta t$. Vista así, la ecuación no contiene ningún pasa-altos: sólo suaviza las dos entradas, y lo que suma uno son los pesos $\alpha$ y $1-\alpha$, no las transferencias.
+
+El nombre aparece al tomar como entrada del giróscopo el ángulo que daría por sí solo, es decir, la suma de todos sus giros: $\theta_{g,k} = \theta_{g,k-1} + \omega_k\,\Delta t$. Como entonces $\Delta t\,\Omega(z) = (1-z^{-1})\,\Theta_g(z)$, reemplazando en~\eqref{eq:complementario_directa} queda
+\begin{equation}
+\Theta(z) = H_{acc}(z)\,\Theta_{acc}(z) + H_g(z)\,\Theta_g(z), \qquad
+H_g(z) = \frac{\alpha\,(1-z^{-1})}{1-\alpha z^{-1}}, \qquad
+H_{acc}(z) + H_g(z) = 1 .
+\end{equation}
+Respecto de $\theta_g$, el canal del giróscopo es un pasa-altos: ganancia nula en continua y cercana a uno en las frecuencias altas. Como $\theta_g$ y $\theta_{acc}$ estiman el mismo ángulo y las dos transferencias suman uno en todas las frecuencias, el filtro toma los cambios rápidos del giróscopo y el valor de fondo del acelerómetro, y lo que uno descarta lo aporta el otro; de ahí el nombre de \emph{complementario}. El firmware nunca calcula $\theta_g$ por separado: el pasa-altos queda implícito en la ecuación~\eqref{eq:complementario}. La constante de tiempo que separa ambas regiones es
 \begin{equation}
 \tau = \frac{\alpha\,\Delta t}{1-\alpha} = \frac{0{,}98 \times \SI{0.02}{\second}}{0{,}02} \approx \SI{0.98}{\second}.
 \end{equation}
-Para movimientos más rápidos que $\tau$ domina el giróscopo, que responde sin retardo; para tiempos mayores domina el acelerómetro, que corrige lentamente la deriva. La velocidad angular se integra con el signo que hace que un giro positivo aumente el mismo ángulo que calcula~\eqref{eq:angulos_acc}: $+\omega_y$ aumenta el \textit{pitch} y $+\omega_x$ aumenta el \textit{roll}.
+Para movimientos más rápidos que $\tau$ domina el giróscopo, que responde sin retardo; para tiempos mayores domina el acelerómetro, que corrige lentamente la deriva.
+
+La ganancia de 49 del canal $\omega\,\Delta t$ tiene una consecuencia práctica. Con un \textit{bias} residual $b$, el ángulo ya no deriva sin límite como en el giróscopo solo, sino que queda desplazado un valor fijo:
+\begin{equation}
+\Delta\theta = \frac{\alpha}{1-\alpha}\,b\,\Delta t = \tau\, b .
+\end{equation}
+Con el \textit{bias} de \SI{0.57}{\degree\per\second} usado como ejemplo al describir el giróscopo, que sin el filtro haría derivar el ángulo unos \SI{34}{\degree} por minuto, el error sería de unos \SI{0.56}{\degree}. Por eso igual conviene medir y restar el \textit{bias} al encender. La velocidad angular se integra con el signo que hace que un giro positivo aumente el mismo ángulo que calcula~\eqref{eq:angulos_acc}: $+\omega_y$ aumenta el \textit{pitch} y $+\omega_x$ aumenta el \textit{roll}.
 
 \begin{lstlisting}[caption={Filtro complementario en la tarea de transmisión.}, label={cod:complementario}]
 float gyroRatePitch = (g.gyro.y - gyroBiasY) * RAD_TO_DEG;

@@ -3,7 +3,7 @@
 - Sigue el orden de `presentacion.tex` (versión con las diapositivas nuevas del MPU6050).
 - **[entre corchetes]** van las acciones: qué señalar, cuándo pausar, a qué mirar.
 - El texto es orientativo: conviene decirlo con palabras propias y no leerlo.
-- El tiempo de cada diapositiva es estimado. En total da unos **22–25 min** sin la demo, y la defensa tiene **15–20 min + demo** (ver `PENDIENTES.md`): **hay que recortar**. Ver "Qué recortar" al final.
+- El tiempo de cada diapositiva es estimado. En total da unos **22–25 min** sin la demo, y se puede exponer hasta 30–40 min, así que **no hace falta recortar**: conviene ir sin apuro y, si sobra tiempo, usar las diapositivas de respaldo. "Qué recortar", al final, queda sólo por si el jurado pide acortar.
 - **Reparto:** completar quién presenta cada bloque. Conviene cambiar de orador al empezar una sección, no en medio de una diapositiva.
 
 | Bloque | Diapositivas | Orador |
@@ -35,7 +35,6 @@ Nos propusimos replicar siete movimientos: la apertura y el cierre de cada uno d
 ### 4. Demostración (~2–3 min, según la demo)
 **[Si la demo en vivo funciona]** Antes de entrar en detalle, les mostramos cómo funciona. **[Ponerse el guante]** Fíjense que puedo mover cada dedo por separado… **[cerrar el índice despacio y dejarlo a mitad de camino]** y la mano no sigue solo los extremos: también las posiciones intermedias. **[Girar la muñeca y después flexionarla]** La muñeca sigue la rotación y la flexión.
 Si queda tiempo: **[apagar el guante]** si se corta el enlace, la mano vuelve sola al reposo en menos de un cuarto de segundo. Eso lo vamos a explicar en la parte de firmware.
-**[Si falla]** No hay drama: tenemos un video de respaldo. *(Pendiente: grabarlo y enlazarlo en la diapositiva.)*
 
 ---
 
@@ -105,8 +104,8 @@ Pasamos a la muñeca. El MPU6050 tiene dos sensores MEMS.
 
 ### 15. IMU: orientación a partir de la gravedad (~45 s) — *nueva*
 **[Señalar la secuencia de bloques de arriba, de izquierda a derecha]** Acá se ve por qué sirve medir la gravedad. Con el sensor quieto, la única aceleración es la gravedad, que siempre apunta hacia abajo. Al inclinar el sensor, esa gravedad se reparte de otra forma entre los tres ejes. **[Señalar los ángulos θ y φ en los dibujos]** A partir de cuánto ve cada eje se obtiene la inclinación.
-**[Señalar las fórmulas]** La figura muestra la idea general con arcotangentes. En el firmware usamos la versión con `atan2`, que da el cuadrante correcto. La vemos en la próxima diapositiva.
-> ⚠️ Las fórmulas de la figura no son las mismas que las de la diapositiva siguiente. Si preguntan: es la misma idea; `atan2` resuelve el signo y el cuadrante.
+Las cuentas exactas, con `atan2`, las vemos en la próxima diapositiva.
+> La figura está recortada: es sólo el esquema, sin las fórmulas con `atan` y θx/θy/θz del original (fig. 9 del informe), que no coinciden con las del firmware. Si preguntan por la fig. 9: es la misma idea; `atan2` resuelve el signo y el cuadrante.
 
 ### 16. IMU: qué aporta cada sensor y por qué deriva (~1:30 min)
 **[Bloque izquierdo]** El giróscopo es rápido, pero para tener el ángulo hay que integrar la velocidad. Cualquier error constante, el *bias*, se acumula en el tiempo. **[Señalar el ejemplo]** Con un bias de 0,01 rad/s, que es poco más de medio grado por segundo, en un minuto el ángulo se corre unos 34°.
@@ -118,13 +117,13 @@ Pasamos a la muñeca. El MPU6050 tiene dos sensores MEMS.
 **[Señalar la curva verde]** Este gráfico muestra lo que acabamos de decir. La curva verde es el ángulo que da el giróscopo integrado. **[Seguir la flecha "DERIVA"]** Sigue bien los cambios, los escalones, pero se va corriendo hacia arriba y termina unos 50° por encima del valor real.
 **[Señalar la curva azul]** La azul es el acelerómetro. Está centrada en el valor correcto, pero tiene un ruido de varios grados **[señalar las flechas "RUIDO"]** y picos cada vez que hay un movimiento brusco.
 **[Señalar la curva roja]** La roja es la fusión de las dos, con el filtro complementario. Sigue los escalones tan rápido como el giróscopo y se queda centrada como el acelerómetro: sin deriva y sin ruido. Eso es lo que buscamos, y es lo que explicamos en la próxima diapositiva.
-> ⚠️ Es una imagen ilustrativa, no una medición nuestra. Falta citar la fuente. En el eje vertical, los valores por debajo de 0 no tienen el signo menos.
+> Es una imagen ilustrativa, no una medición nuestra; la fuente (Luis Llamas) está citada al pie de la diapositiva. En el eje vertical, los valores por debajo de 0 no tienen el signo menos (viene así de origen): si preguntan, aclararlo.
 
 ### 18. Muñeca: filtro complementario (~1:30 min)
 **[Señalar la ecuación]** El filtro es esta única línea. En cada ciclo, el ángulo nuevo se arma en un 98 % con lo que predice el giróscopo, que es el ángulo anterior más la velocidad por el Δt, y en un 2 % con el ángulo del acelerómetro.
 ¿Por qué se llama complementario? Si al canal del giróscopo lo pensamos en términos del **ángulo integrado**, su camino se comporta como un pasa-altos y el del acelerómetro como un pasa-bajos. Los dos se complementan, porque sus transferencias suman uno. **[Señalar τ]** La frontera entre ambos la da la constante de tiempo: τ ≈ 1 s.
 **[Ítems]** En la práctica: los movimientos más rápidos que un segundo los sigue el giróscopo, sin retardo, y en tiempos más largos el acelerómetro corrige la deriva de a poco. Además, cerca de los 80° el roll queda indefinido (es el *gimbal lock*), así que retenemos el último valor. El filtro interno del MPU6050 lo pusimos en 44 Hz, que agrega unos 5 ms de retardo.
-> ⚠️ **Ojo con la corrección del revisor** (ver `docs/CORRECCIONES_REVISOR.md`). La diapositiva todavía dice "giróscopo: pasa-altos" y "acelerómetro: pasa-bajos" sobre la ecuación. Con la ecuación tal como está escrita, las dos entradas pasan por el mismo pasa-bajos (ganancias en continua 1 y 49). El pasa-altos aparece solo si se toma como entrada el ángulo integrado del giróscopo. Por eso el texto de arriba dice "si lo pensamos en términos del ángulo integrado". Si preguntan, ver la sección de preguntas al final.
+> La diapositiva ya está corregida: el pasa-altos se aclara respecto del ángulo integrado del giróscopo (ver la pregunta del revisor al final).
 
 ### 19. Receptor: callback, cola y tarea de control (~1:15 min)
 **[Recorrer el diagrama]** Ahora el receptor. Llega el paquete por radio, el callback lo valida en el núcleo 0 y lo deja en una cola, y la tarea de control, en el núcleo 1, lo toma y escribe los servos.
@@ -221,7 +220,7 @@ Más preguntas de práctica, con sus respuestas: `docs/aprendizaje/04_PREGUNTAS_
 
 ---
 
-## Qué recortar (necesario para entrar en 15–20 min)
+## Qué recortar (sólo si piden acortar)
 1. **Diapositiva 7 (conexionado del transmisor):** basta con una frase sobre ADC1/ADC2.
 2. **Diapositiva 15 (orientación a partir de la gravedad):** se puede decir en una frase y pasar.
 3. **Diapositiva 22 (evolución):** contar solo el doble filtrado y lo del Kalman.
@@ -232,4 +231,4 @@ Con esto se ahorran unos 3–4 minutos. Para llegar a 15–20 min, además: resu
 - Practicar en voz alta con la presentación proyectada y un cronómetro, al menos dos veces completa.
 - Señalar con el puntero lo que se nombra (por eso están las marcas **[…]**). Mirar al jurado, no a la pantalla.
 - En las diapositivas con diagramas (5, 11, 19, 20) conviene recorrer el diagrama en el orden en que viaja el dato.
-- Llevar el guante ya calibrado y probar la demo antes de entrar. Tener el video a mano.
+- Llevar el guante ya calibrado y probar la demo antes de entrar (no hay video de respaldo).

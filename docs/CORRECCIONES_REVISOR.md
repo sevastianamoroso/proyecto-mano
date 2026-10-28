@@ -1,6 +1,7 @@
 # Correcciones del revisor (Edu), recibidas 2026-10-27
 
-> Notas para analizar **antes** de cambiar el informe. Todavía no se tocó nada de esto.
+> **Aplicado el 2026-10-28** en `04_transmisor.tex`, `07_analisis_temporal.tex` y la presentación. La repetición
+> de la corrida de latencia (opcional) no se hizo. Lo de abajo queda como registro del análisis.
 
 Mensaje original (resumen): el informe está muy bien, solo dos cosas menores:
 1. En la pág. 14 del PDF, la ecuación (7) se describe como "filtro complementario" que se comporta como

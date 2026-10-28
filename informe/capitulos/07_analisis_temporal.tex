@@ -25,9 +25,64 @@ Movimiento mecánico & según amplitud & $\approx\SI{0.1}{\second}$ cada \SI{60}
 
 En promedio, la orden llega al servo unos \SI{30}{\milli\second} después del movimiento del operador. Ante cambios grandes se suma el limitador de velocidad, que reparte el movimiento en varios ciclos, y luego el tiempo que tarda el servo en recorrer el ángulo.
 
-Para medir la latencia real se preparó un ensayo de punta a punta sobre el camino de los dedos (procedimiento en \texttt{docs/\allowbreak pruebas/\allowbreak PRUEBA\_LATENCIA.md}). El receptor reemplaza al potenciómetro del índice: aplica un escalón de tensión en la entrada del transmisor (GPIO 34) y mide, con su propio reloj, el tiempo hasta el fin del primer pulso PWM con el ancho nuevo en la salida del servo del índice. Como el inicio y el fin se toman en la misma placa, no hace falta sincronizar relojes. La medición incluye la espera al ciclo del transmisor, la lectura y el envío, la recepción, la tarea de control y la espera al pulso PWM; no incluye el movimiento mecánico ni el filtro interno del MPU6050.
+\subsection{Medición de la latencia de punta a punta}
+\label{sec:latencia_medida}
 
-\paragraph{Resultado.} El ensayo se realizó con la versión 2.3.0 de ambos nodos. En una corrida de unos 420 escalones, promediados en bloques de 15, la \textbf{latencia media de punta a punta fue de \SI{23.9}{\milli\second}} (figura~\ref{fig:latencia}). En otra corrida, en la que se registró cada escalón por separado (28 ensayos), la media fue de \SI{31.4}{\milli\second}, con valores entre \SI{22.8}{\milli\second} y \SI{42.3}{\milli\second}, sin paquetes perdidos ni ensayos sin respuesta. La diferencia entre ambas medias se debe a la fase entre las placas: las dos trabajan a \SI{50}{\hertz} con relojes independientes que casi no se desfasan, por lo que la espera hasta el siguiente pulso PWM queda prácticamente fija durante una corrida y cambia de una corrida a otra.
+El procedimiento completo está en \texttt{docs/\allowbreak pruebas/\allowbreak PRUEBA\_LATENCIA.md} y los datos en \texttt{docs/\allowbreak pruebas/\allowbreak evidencia/\allowbreak 2026-10-26\_latencia/}.
+
+\paragraph{Qué se mide.} Se define la latencia como el tiempo entre un cambio en la entrada del sensor del índice ($t_0$) y el final del primer pulso PWM que le ordena al servo del índice la nueva posición ($t_1$). Se toma el flanco de bajada porque el servo recién conoce el ancho del pulso cuando éste termina. En el medio se registra también el instante en que llega al receptor el primer paquete que trae el cambio. Así, cada ensayo da dos tiempos:
+\begin{itemize}
+    \item \texttt{llegada}: de $t_0$ a la llegada del paquete. Incluye la espera hasta el siguiente ciclo del transmisor, la lectura del ADC, el empaquetado y el envío por ESP-NOW.
+    \item \texttt{primer}: de $t_0$ a $t_1$, es decir, la latencia de punta a punta. Al tiempo anterior le suma el \textit{callback}, la tarea de control y la espera hasta el siguiente pulso PWM.
+\end{itemize}
+No se incluyen el potenciómetro físico, el movimiento mecánico del servo ni el camino de la muñeca (MPU6050 y filtro complementario).
+
+\paragraph{Montaje.} Se usan las dos placas con su firmware normal, salvo un agregado en el receptor (figura~\ref{fig:montaje_latencia}). El cursor del potenciómetro del índice se desconecta del GPIO 34 del transmisor, y en su lugar el GPIO 18 del receptor aplica el escalón de tensión, alternando entre \SI{0}{\volt} y \SI{3.3}{\volt} a través de una resistencia de \SI{1}{\kilo\ohm}. Esa tensión lleva el índice a un extremo o al opuesto (\SI{25}{\degree} o \SI{90}{\degree}), lo que el transmisor interpreta como un movimiento del dedo. La señal del servo del índice (GPIO 26) se conecta además al GPIO 4 del mismo receptor, que mide el ancho de cada pulso. Las masas de las dos placas se unen. Como $t_0$ y $t_1$ se toman con el reloj del receptor, no hace falta sincronizar las placas.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=1.2cm and 2.6cm]
+  \node[bloque, minimum width=3.4cm, minimum height=2.4cm] (tx) {\textbf{Transmisor}\\firmware v2.3.0\\sin cambios};
+  \node[bloque, minimum width=3.4cm, minimum height=2.4cm, right=4.2cm of tx] (rx) {\textbf{Receptor}\\v2.3.0 + ensayo\\de latencia};
+  \node[bloque, below=1.3cm of rx, fill=white] (servo) {Servo del índice};
+  \draw[flecha] ([yshift=0.6cm]rx.west) -- node[above, font=\footnotesize]{GPIO 18 $\rightarrow$ \SI{1}{\kilo\ohm} $\rightarrow$ GPIO 34}
+        node[below, font=\footnotesize]{escalón ($t_0$)} ([yshift=0.6cm]tx.east);
+  \draw[flecha, dashed] ([yshift=-0.6cm]tx.east) -- node[below, font=\footnotesize]{ESP-NOW (llegada)} ([yshift=-0.6cm]rx.west);
+  \draw[flecha] (rx.south) -- node[pos=0.8, left, font=\footnotesize]{GPIO 26 (PWM)} (servo.north);
+  \draw[flecha] ($(rx.south)!0.5!(servo.north)$) -- ++(2.6,0) |- node[pos=0.25, right, font=\footnotesize, align=left]{GPIO 4\\($t_1$)} ([yshift=-0.3cm]rx.east);
+  \node[font=\footnotesize, below=0.3cm of tx] {Potenciómetro del índice desconectado; masas unidas};
+\end{tikzpicture}
+\caption{Montaje para medir la latencia de punta a punta. Los dos instantes se toman en el receptor.}
+\label{fig:montaje_latencia}
+\end{figure}
+
+\paragraph{Por qué el receptor puede medirse a sí mismo.} El receptor es a la vez parte del sistema medido y el instrumento, pero el código de medición no interfiere con el camino de control. Los instantes los toman una interrupción en el GPIO 4, en cada flanco del PWM, y el \textit{callback} de recepción, que sólo anota la hora de llegada. El resto del ensayo corre en \texttt{loop()}, con prioridad 1, por debajo de la tarea de control, y las constantes del receptor son las mismas que las de \texttt{Receptor.ino}. El transmisor usa su firmware normal sin cambios. Si \texttt{loop()} se hubiera salteado algún pulso, el ensayo se marcaría para descartarlo; no ocurrió en ninguno.
+
+\paragraph{Criterios del ensayo.}
+\begin{itemize}
+    \item Se aplica un escalón por vez y no se arranca otro hasta que termina el anterior o pasa \SI{1}{\second}. Así cada respuesta corresponde sin ambigüedad a su escalón.
+    \item Antes de cada escalón se espera un tiempo aleatorio de 200 a \SI{600}{\milli\second}, con el enlace activo y el servo quieto. De este modo el escalón cae en cualquier punto del ciclo de \SI{20}{\milli\second} del transmisor.
+    \item Un paquete cuenta como ``llegada'' si el ángulo del índice cambió al menos \SI{3}{\degree}, más que la banda muerta. Un pulso cuenta como ``ancho nuevo'' si difiere en más de \SI{30}{\micro\second} del anterior al escalón (\SI{1}{\degree} $\approx$ \SI{10.6}{\micro\second}).
+\end{itemize}
+
+\paragraph{Resultados.} El ensayo se hizo con la versión 2.3.0 de ambos nodos, en dos corridas (tabla~\ref{tab:latencia_medida}). En la primera se registró cada escalón por separado. En la segunda se usó una variante del programa que guarda sólo la media de cada bloque de 15 escalones, por lo que de esa corrida no hay dispersión por ensayo. No hubo paquetes perdidos ni ensayos sin respuesta.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{l c c c c c}
+\toprule
+\textbf{Corrida} & \textbf{Ensayos} & \textbf{Media} & \textbf{Desvío} & \textbf{Mín.} & \textbf{Máx.} \\
+\midrule
+Ensayos individuales & 28 & \SI{31.4}{\milli\second} & \SI{6.0}{\milli\second} & \SI{22.8}{\milli\second} & \SI{42.3}{\milli\second} \\
+Medias de bloques de 15 & $\approx 420$ & \SI{23.9}{\milli\second} & --- & \SI{20.1}{\milli\second}$^{*}$ & \SI{35.0}{\milli\second}$^{*}$ \\
+\bottomrule
+\end{tabular}
+
+\smallskip
+{\footnotesize $^{*}$ Mínimo y máximo de las medias de bloque, no de ensayos individuales.}
+\caption{Latencia de punta a punta medida (tiempo \texttt{primer}).}
+\label{tab:latencia_medida}
+\end{table}
 
 \begin{figure}[H]
     \centering
@@ -35,5 +90,29 @@ Para medir la latencia real se preparó un ensayo de punta a punta sobre el cami
     \caption{Latencia de punta a punta en la corrida larga. Cada punto es la media de 15 escalones.}
     \label{fig:latencia}
 \end{figure}
+
+\paragraph{Reparto en tramos.} En la corrida de 28 ensayos se puede separar el total en dos tramos (tabla~\ref{tab:latencia_tramos}).
+
+\begin{table}[H]
+\centering
+\begin{tabular}{l c c c c}
+\toprule
+\textbf{Tramo} & \textbf{Media} & \textbf{Desvío} & \textbf{Mín.} & \textbf{Máx.} \\
+\midrule
+Escalón $\rightarrow$ llegada del paquete (transmisor y enlace) & \SI{15.7}{\milli\second} & \SI{6.6}{\milli\second} & \SI{6.4}{\milli\second} & \SI{31.3}{\milli\second} \\
+Llegada $\rightarrow$ fin del pulso PWM (receptor) & \SI{15.7}{\milli\second} & \SI{1.3}{\milli\second} & \SI{11.0}{\milli\second} & \SI{16.4}{\milli\second} \\
+\midrule
+Total (punta a punta) & \SI{31.4}{\milli\second} & \SI{6.0}{\milli\second} & \SI{22.8}{\milli\second} & \SI{42.3}{\milli\second} \\
+\bottomrule
+\end{tabular}
+\caption{Reparto de la latencia en la corrida de 28 ensayos individuales.}
+\label{tab:latencia_tramos}
+\end{table}
+
+El primer tramo varía mucho de un ensayo a otro, como se esperaba. Como el escalón cae en un punto al azar del ciclo de \SI{20}{\milli\second}, la espera hasta la lectura siguiente va de 0 a \SI{20}{\milli\second} (media 10, desvío teórico \SI{5.8}{\milli\second}). Sumando unos \SI{5}{\milli\second} de lectura, empaquetado y radio, la media esperada es de unos \SI{15}{\milli\second}, que coincide con la medida. Un único ensayo llegó un ciclo más tarde (\SI{31.3}{\milli\second}); posiblemente el escalón cayó durante el sobremuestreo del ADC y el cambio superó el umbral recién en la lectura siguiente.
+
+El segundo tramo, en cambio, es casi constante (desvío de \SI{1.3}{\milli\second}). Si la fase entre las placas fuera aleatoria, la espera hasta el siguiente pulso PWM iría de 0 a \SI{20}{\milli\second}. Que no varíe indica que los ciclos de \SI{50}{\hertz} del transmisor y del receptor mantienen una fase fija durante una corrida: el paquete llega siempre en el mismo punto del período PWM. Esa fase depende de cuándo arrancó cada placa, así que cambia de una corrida a otra y explica que las dos medias difieran (31,4 frente a \SI{23.9}{\milli\second}). Con otra fase, la espera puede ser de unos pocos milisegundos o de casi un período completo. En la corrida de bloques esta explicación no se puede comprobar en forma directa, porque esa variante no guardó los tramos. En la operación normal la fase es la que resulte al encender las placas, así que la media de cada sesión puede cambiar en hasta un período PWM (\SI{20}{\milli\second}); en las dos corridas quedó dentro de uno o dos ciclos de transmisión.
+
+\paragraph{Limitaciones.} La medición no incluye el potenciómetro físico ni el movimiento del servo, y no cubre el camino de la muñeca. Las placas están unidas por cables durante el ensayo, cosa que no ocurre en el uso real. La corrida larga no conserva los ensayos individuales, por lo que de ella sólo se informa la media.
 
 Los valores medidos coinciden con la estimación de la tabla~\ref{tab:latencia} y equivalen a uno o dos ciclos de transmisión. Son además bastante menores que el tiempo que tarda el propio servo en moverse (unos \SI{100}{\milli\second} cada \SI{60}{\degree} en el SG90), por lo que el enlace y el procesamiento no son el factor que limita la respuesta: en la operación la mano sigue al guante sin un retardo apreciable, como se observa también en la sección~\ref{sec:pruebas_respuesta}. Para los objetivos de este proyecto alcanza con el valor medio; una caracterización estadística completa excede su alcance y se propone como continuación en la sección~\ref{sec:conclusiones}.
